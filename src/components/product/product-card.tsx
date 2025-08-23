@@ -56,7 +56,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           onClick={() => viewProduct(product.id)}
         >
           <Image
-            src={displayImage}
+            src={displayImage || '/images/placeholder.jpg'}
             alt={product.title}
             fill
             className='object-cover'

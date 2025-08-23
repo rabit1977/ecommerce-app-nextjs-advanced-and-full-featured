@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useApp } from '@/lib/context/app-context';
 import { Product } from '@/lib/types';
 import { ChevronDown } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 interface ProductGridProps {
   title?: string;
@@ -18,13 +19,22 @@ const ProductGrid = ({
   subtitle = 'Check out our latest and greatest',
   products: customProducts,
 }: ProductGridProps) => {
-  const { products: contextProducts, searchQuery } = useApp();
+  const { products: contextProducts, searchQuery, setSearchQuery } = useApp();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('featured');
   const [currentPage, setCurrentPage] = useState(1);
 
   const products = customProducts || contextProducts;
   const productsPerPage = 8;
+
+  // Handle URL search parameter on component mount
+  useEffect(() => {
+    const search = searchParams.get('search');
+    if (search) {
+      setSearchQuery(search);
+    }
+  }, []); // Empty dependency array
 
   // Get all categories from products
   const categories = useMemo(() => {
@@ -68,6 +78,7 @@ const ProductGrid = ({
     return result;
   }, [products, filter, sort, searchQuery]);
 
+  // Rest of the component remains the same...
   // Pagination logic
   const totalPages = Math.ceil(
     filteredAndSortedProducts.length / productsPerPage

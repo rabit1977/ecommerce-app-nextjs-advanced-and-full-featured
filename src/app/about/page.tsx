@@ -71,7 +71,7 @@ const AboutPage = () => {
               <div key={index} className="text-center">
                 <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-lg dark:border-slate-800">
                   <Image
-                    src={member.image}
+                    src={member.image || 'images/placeholder.jpg'}
                     alt={member.name}
                     width={128}
                     height={128}

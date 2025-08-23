@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { Search, ShoppingCart, Heart, Sun, Moon, Menu, Zap, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Search, ShoppingCart, Heart, Sun, Moon, Menu, User, Zap, X } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useRouter } from 'next/navigation'; // Add this import
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -24,7 +24,8 @@ const Header = () => {
     setSelectedProductId,
   } = useApp();
   
-  const router = useRouter(); // Add router for direct navigation
+  const router = useRouter();
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -40,7 +41,8 @@ const Header = () => {
     if (!searchQuery) return [];
     return products.filter(p => 
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.brand.toLowerCase().includes(searchQuery.toLowerCase())
+      p.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.category.toLowerCase().includes(searchQuery.toLowerCase())
     ).slice(0, 5);
   }, [searchQuery, products]);
 
@@ -48,6 +50,13 @@ const Header = () => {
     setSelectedProductId(productId);
     setSearchQuery('');
     router.push(`/products/${productId}`);
+  };
+
+  const navigateToSearchResults = () => {
+    if (searchQuery) {
+      router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery('');
+    }
   };
 
   // Navigation functions using router
@@ -77,9 +86,19 @@ const Header = () => {
               className="pr-10"
               value={searchQuery}
               onChange={handleSearchChange}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery) {
+                  navigateToSearchResults();
+                }
+              }}
             />
             {searchQuery ? (
-              <button onClick={handleClearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 hover:text-slate-600">
+              <button 
+                onClick={handleClearSearch} 
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 hover:text-slate-600"
+              >
                 <X className="h-5 w-5"/>
               </button>
             ) : (
@@ -87,7 +106,7 @@ const Header = () => {
             )}
           </div>
           
-          {searchQuery && searchResults.length > 0 && (
+          {(searchQuery && searchResults.length > 0 && isSearchFocused) && (
             <div className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-slate-900 rounded-md shadow-lg z-20 border border-slate-200 dark:border-slate-800 p-2">
               {searchResults.map(product => (
                 <a 
@@ -96,11 +115,15 @@ const Header = () => {
                   onClick={(e) => { e.preventDefault(); handleSearchClick(product.id); }} 
                   className="flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  <Image 
-                    src={product.options?.[0]?.variants?.[0]?.image || product.images?.[0] || 'https://placehold.co/40x40/E2E8F0/1A202C?text=No+Image'} 
-                    alt={product.title} 
-                    className="h-10 w-10 object-cover rounded-md flex-shrink-0" 
-                  />
+                  <div className="h-10 w-10 relative flex-shrink-0">
+                    <Image
+                      src={product.images?.[0] || '/images/placeholder.jpg'}
+                      alt={product.title}
+                      fill
+                      className="object-cover rounded-md"
+                      sizes="40px"
+                    />
+                  </div>
                   <div>
                     <div className="font-medium text-sm dark:text-white">{product.title}</div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">{product.brand}</div>
@@ -111,7 +134,7 @@ const Header = () => {
                 <Button 
                   variant="link" 
                   size="sm" 
-                  onClick={() => navigateTo('/products')} 
+                  onClick={navigateToSearchResults}
                   className="w-full"
                 >
                   View all results for {searchQuery}

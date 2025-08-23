@@ -10,6 +10,7 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  error?: Error;
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -17,8 +18,8 @@ class ErrorBoundary extends Component<Props, State> {
     hasError: false
   };
 
-  public static getDerivedStateFromError(): State {
-    return { hasError: true };
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -28,7 +29,7 @@ class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
           <div className="max-w-md w-full bg-white p-6 rounded-lg shadow-md">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="h-6 w-6 text-red-500" />
@@ -37,6 +38,14 @@ class ErrorBoundary extends Component<Props, State> {
             <p className="text-gray-600 mb-4">
               The application encountered an unexpected error. This might be due to corrupted data.
             </p>
+            {this.state.error && (
+              <details className="mb-4 text-xs text-gray-500">
+                <summary>Error details</summary>
+                <pre className="mt-2 overflow-auto p-2 bg-gray-100 rounded">
+                  {this.state.error.toString()}
+                </pre>
+              </details>
+            )}
             <div className="space-y-2">
               <Button 
                 onClick={() => window.location.reload()} 
