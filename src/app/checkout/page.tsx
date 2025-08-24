@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { CheckoutSteps } from '@/components/checkout/checkout-steps';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { priceFmt } from '@/lib/utils/formatters';
+import Image from 'next/image';
 
 const CheckoutPage = () => {
   const { cart, placeOrder } = useApp();
@@ -60,6 +61,7 @@ const CheckoutPage = () => {
       paymentInfo
     };
     
+    // The placeOrder function now handles toast and redirection.
     placeOrder(orderDetails);
   };
 
@@ -211,22 +213,59 @@ const CheckoutPage = () => {
               <div>
                 <h2 className="text-xl font-semibold dark:text-white">Review Your Order</h2>
                 
-                <div className="mt-4 space-y-2 border p-4 rounded-md dark:border-slate-700">
-                  <h3 className="font-medium dark:text-white">Shipping to:</h3>
-                  <p className="text-slate-600 dark:text-slate-300">
-                    {shippingInfo.firstName} {shippingInfo.lastName}<br/>
-                    {shippingInfo.address}<br/>
-                    {shippingInfo.city}, {shippingInfo.state} {shippingInfo.zip}
-                  </p>
+                <div className="mt-4 flex flex-col gap-4">
+                  <div className="border p-4 rounded-md dark:border-slate-700">
+                    <h3 className="font-medium dark:text-white">Shipping to:</h3>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      {shippingInfo.firstName} {shippingInfo.lastName}<br/>
+                      {shippingInfo.address}<br/>
+                      {shippingInfo.city}, {shippingInfo.state} {shippingInfo.zip}
+                    </p>
+                  </div>
+                  
+                  <div className="border p-4 rounded-md dark:border-slate-700">
+                    <h3 className="font-medium dark:text-white">Payment Method:</h3>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      {paymentInfo.nameOnCard} - Card ending in {paymentInfo.cardNumber.slice(-4)}
+                    </p>
+                  </div>
+                  
+                  <div className="border p-4 rounded-md dark:border-slate-700">
+                    <h3 className="font-medium dark:text-white">Items:</h3>
+                    <ul className="mt-2 space-y-4">
+                      {cart.map((item) => (
+                        <li key={item.id} className="flex items-center gap-4">
+                          <div className="w-16 h-16 flex-shrink-0 relative rounded-md overflow-hidden">
+                            <Image 
+                              src={item.image}
+                              alt={item.title}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <p className="font-medium dark:text-white">{item.title}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Qty: {item.quantity}</p>
+                            <p className="text-sm font-medium dark:text-white">{priceFmt(item.price * item.quantity)}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
                 
-                <Button 
-                  size="lg" 
-                  className="mt-6 bg-green-600 hover:bg-green-700" 
-                  onClick={handlePlaceOrder}
-                >
-                  Place Order
-                </Button>
+                <div className="flex gap-4 mt-6">
+                  <Button variant="outline" size="lg" onClick={() => setStep(2)}>
+                    Back to Payment
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    className="bg-green-600 hover:bg-green-700" 
+                    onClick={handlePlaceOrder}
+                  >
+                    Place Order
+                  </Button>
+                </div>
               </div>
             )}
           </div>

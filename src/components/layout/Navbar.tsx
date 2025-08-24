@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
+import { getProductImage } from '@/lib/utils/product-images';
 import { Heart, Menu, Moon, Search, ShoppingCart, Sun, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -88,11 +89,7 @@ export function Navbar() {
                 >
                   <div className='relative h-10 w-10 flex-shrink-0'>
                     <Image
-                      src={
-                        product.options?.[0]?.variants?.[0]?.image ||
-                        product.images?.[0] ||
-                        '/placeholder-image.jpg'
-                      }
+                      src={getProductImage(product)}
                       alt={product.title}
                       fill
                       className='object-cover rounded-md'

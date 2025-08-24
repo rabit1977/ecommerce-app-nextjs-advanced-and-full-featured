@@ -1,3 +1,5 @@
+// src/constants/products.ts
+
 import { Product } from "../types";
 
 export const initialProducts: Product[] = [
@@ -11,6 +13,7 @@ export const initialProducts: Product[] = [
     category: "TVs", 
     stock: 5, 
     description: "Blinding 2,500-nit peaks with 2,000+ local dimming zones, 144Hz VRR, Dolby Vision IQ & Dolby Atmos.", 
+    images: ["https://images.unsplash.com/photo-1461151304267-38535e780c79?q=80&w=800&auto=format&fit=crop"],
     options: [
       {
         name: "Color",
@@ -36,6 +39,7 @@ export const initialProducts: Product[] = [
     category: "Phones", 
     stock: 12, 
     description: "The next generation of mobile computing with the A19 Bionic chip and a revolutionary triple-camera system.", 
+    images: ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"],
     options: [
       {
         name: "Color",
@@ -233,7 +237,6 @@ export const initialProducts: Product[] = [
     description: "A scientific ergonomic design that encourages a natural handshake wrist and arm posture for healthier computing.", 
     reviews: [] 
   },
-  // Additional products...
   { 
     id: "sku-112", 
     title: "Quantum 85\" 8K TV", 

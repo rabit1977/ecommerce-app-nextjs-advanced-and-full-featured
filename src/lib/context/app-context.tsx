@@ -6,10 +6,10 @@ import React, {
   useCallback,
   useContext,
   useEffect,
-  useReducer,
 } from 'react';
 import { initialProducts } from '../constants/products';
 import { AppState, CartItem, Order, Review } from '../types';
+import { useLocalStorageReducer } from '../hooks/useLocalStorage';
 
 interface AppContextType extends AppState {
   // Navigation functions
@@ -66,7 +66,7 @@ const initialState: AppState = {
   cart: [],
   wishlist: new Set(),
   orders: [],
-  products: [],
+  products: initialProducts,
   savedForLater: [],
   theme: 'light',
   searchQuery: '',
@@ -84,6 +84,8 @@ function appReducer(state: AppState, action: any): AppState {
       return { ...state, ...action.payload };
     case 'SET_USER':
       return { ...state, user: action.payload };
+    case 'SET_USERS':
+      return { ...state, users: action.payload };
     case 'SET_CART':
       return { ...state, cart: action.payload };
     case 'SET_WISHLIST':
@@ -132,7 +134,11 @@ function appReducer(state: AppState, action: any): AppState {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  const [state, dispatch] = useLocalStorageReducer(
+    appReducer,
+    initialState,
+    'appState'
+  );
   const router = useRouter();
 
   // Navigation functions
@@ -157,117 +163,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [navigateTo]
   );
 
+  // Refactored to handle redirection to a specific order page
   const viewOrder = useCallback(
     (orderId: string) => {
+      // Corrected path to match the file-based routing
       navigateTo(`account/orders/${orderId}`);
     },
     [navigateTo]
   );
 
-  // Load initial state from localStorage
+  // Set theme class on HTML element - this is still needed as a side effect
   useEffect(() => {
-    const loadState = () => {
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const wishlist = new Set(
-          JSON.parse(localStorage.getItem('wishlist') || '[]')
-        );
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-
-        // Fix products loading - handle both string and object cases
-        let products = initialProducts;
-       const storedProducts = localStorage.getItem('products');
-if (storedProducts) {
-  try {
-    const parsedProducts = JSON.parse(storedProducts);
-    products = validateProductsData(parsedProducts);
-  } catch (e) {
-    console.error('Error parsing products from localStorage:', e);
-    products = initialProducts;
-  }
-}
-        const savedForLater = JSON.parse(
-          localStorage.getItem('savedForLater') || '[]'
-        );
-        const theme =
-          (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
-
-        dispatch({
-          type: 'SET_INITIAL_STATE',
-          payload: {
-            user,
-            users,
-            cart,
-            wishlist,
-            orders,
-            products,
-            savedForLater,
-            theme,
-          },
-        });
-
-        // Set theme class on HTML element
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-
-        console.log('Loaded from localStorage:', {
-          cart: cart.length,
-          products: products.length,
-          users: users.length,
-        });
-      } catch (error) {
-        console.error('Error loading state from localStorage:', error);
-        // Initialize with default products if there's an error
-        dispatch({
-          type: 'SET_INITIAL_STATE',
-          payload: { ...initialState, products: initialProducts },
-        });
-      }
-    };
-
-    loadState();
-  }, []);
-
-  // Save state to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('user', JSON.stringify(state.user));
-  }, [state.user]);
-
-  useEffect(() => {
-    localStorage.setItem('users', JSON.stringify(state.users));
-  }, [state.users]);
-
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(state.cart));
-    console.log('Saved cart to localStorage:', state.cart);
-  }, [state.cart]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      'wishlist',
-      JSON.stringify(Array.from(state.wishlist))
-    );
-  }, [state.wishlist]);
-
-  useEffect(() => {
-    localStorage.setItem('orders', JSON.stringify(state.orders));
-  }, [state.orders]);
-
-  useEffect(() => {
-    localStorage.setItem('products', JSON.stringify(state.products));
-  }, [state.products]);
-
-  useEffect(() => {
-    localStorage.setItem('savedForLater', JSON.stringify(state.savedForLater));
-  }, [state.savedForLater]);
-
-  useEffect(() => {
-    localStorage.setItem('theme', state.theme);
     if (state.theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -287,14 +193,17 @@ if (storedProducts) {
       const user = state.users.find(
         (u) => u.email === email && u.password === password
       );
+      console.log('Login attempt:', { email, password });
       if (user) {
         dispatch({ type: 'SET_USER', payload: user });
         showToast(`Welcome back, ${user.name}!`);
+        // Add this line to redirect the user to the home page
+        setPage('home');
         return { success: true };
       }
       return { success: false, message: 'Invalid email or password.' };
     },
-    [state.users, showToast]
+    [state.users, showToast, setPage]
   );
 
   const logout = useCallback(() => {
@@ -306,6 +215,7 @@ if (storedProducts) {
     (name: string, email: string, password: string) => {
       // Mock signup logic
       const existingUser = state.users.find((u) => u.email === email);
+      console.log('Signup attempt:', { name, email });
       if (existingUser) {
         return {
           success: false,
@@ -510,9 +420,13 @@ if (storedProducts) {
       dispatch({ type: 'SET_PRODUCTS', payload: updatedProducts });
       dispatch({ type: 'SET_CART', payload: [] });
 
+      // NEW: Show a success toast and redirect to the order page
+      showToast('Order placed successfully!');
+      viewOrder(newOrder.id);
+
       return newOrder.id;
     },
-    [state.orders, state.products]
+    [state.orders, state.products, showToast, viewOrder]
   );
 
   const addReview = useCallback(
@@ -544,29 +458,7 @@ if (storedProducts) {
     },
     [state.products, showToast]
   );
-// Add this validation function to your app-context.tsx
-const validateProductsData = (data: any): Product[] => {
-  if (!Array.isArray(data)) {
-    console.error('Products data is not an array');
-    return initialProducts;
-  }
-  
-  // Basic validation to ensure we have product-like objects
-  const validProducts = data.filter(item => 
-    item && 
-    typeof item === 'object' &&
-    item.id && 
-    item.title && 
-    typeof item.price === 'number'
-  );
-  
-  if (validProducts.length === 0) {
-    console.error('No valid products found in stored data');
-    return initialProducts;
-  }
-  
-  return validProducts;
-};
+
   const updateReviewHelpfulCount = useCallback(
     (productId: string, reviewId: number) => {
       const updatedProducts = state.products.map((p) => {

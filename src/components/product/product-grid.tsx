@@ -102,7 +102,7 @@ const ProductGrid = ({
   };
 
   return (
-    <div className='bg-white dark:bg-slate-950'>
+    <div className='bg-white dark:bg-slate-900'>
       <div className='container mx-auto px-4 py-16'>
         <div className='md:flex md:items-center md:justify-between'>
           <div>

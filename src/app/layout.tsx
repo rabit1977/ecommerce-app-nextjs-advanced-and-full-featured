@@ -38,7 +38,7 @@ export default function RootLayout({
               <QuickViewModal />
               <Toast />
             </div>
-            {process.env.NODE_ENV === 'development' && <CartDebug />}
+            {/* {process.env.NODE_ENV === 'development' && <CartDebug />} */}
           </AppProvider>
         </ErrorBoundary>
       </body>
