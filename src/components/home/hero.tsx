@@ -149,7 +149,7 @@ const Hero = () => {
                     </p>
                     <Button 
                       size="lg" 
-                      className="mt-4 w-fit" 
+                      className="mt-4 w-fit cursor-pointer" 
                       onClick={(e) => {
                         e.stopPropagation();
                         viewProduct(carouselProducts[currentProductIndex].id);
@@ -165,13 +165,13 @@ const Hero = () => {
             {/* Navigation arrows */}
             <button 
               onClick={(e) => { e.stopPropagation(); prevSlide(); }} 
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors z-10"
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors z-10 cursor-pointer"
             >
               <ChevronLeft className="h-8 w-8" />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); nextSlide(); }} 
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors z-10"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors z-10 cursor-pointer"
             >
               <ChevronRight className="h-8 w-8" />
             </button>

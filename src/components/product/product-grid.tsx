@@ -3,10 +3,25 @@
 import { ProductCard } from '@/components/product/product-card';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/lib/context/app-context';
+import { usePagination, DOTS } from '@/lib/hooks/usePagination';
 import { Product } from '@/lib/types';
-import { ChevronDown } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo } from 'react';
+
+// --- Configuration ---
+const PRODUCTS_PER_PAGE = 8;
+
+// --- Sorting Logic Map (Declarative and Extensible) ---
+const sortOptions = {
+  featured: (a: Product, b: Product) => 0, // Default order
+  'price-asc': (a: Product, b: Product) => a.price - b.price,
+  'price-desc': (a: Product, b: Product) => b.price - a.price,
+  rating: (a: Product, b: Product) => (b.rating || 0) - (a.rating || 0),
+  newest: (a: Product, b: Product) => b.id.localeCompare(a.id),
+};
+
+type SortKey = keyof typeof sortOptions;
 
 interface ProductGridProps {
   title?: string;
@@ -15,95 +30,118 @@ interface ProductGridProps {
 }
 
 const ProductGrid = ({
-  title = 'Featured Products',
-  subtitle = 'Check out our latest and greatest',
+  title = 'All Products',
+  subtitle = 'Find the perfect tech for you',
   products: customProducts,
 }: ProductGridProps) => {
-  const { products: contextProducts, searchQuery, setSearchQuery } = useApp();
+  const { products: contextProducts } = useApp();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [filter, setFilter] = useState('all');
-  const [sort, setSort] = useState('featured');
-  const [currentPage, setCurrentPage] = useState(1);
 
+  // --- State Derived from URL (Single Source of Truth) ---
   const products = customProducts || contextProducts;
-  const productsPerPage = 8;
+  const searchQuery = searchParams.get('search') || '';
+  const currentCategory = searchParams.get('category') || 'all';
+  const currentSort = (searchParams.get('sort') as SortKey) || 'featured';
+  const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Handle URL search parameter on component mount
-  useEffect(() => {
-    const search = searchParams.get('search');
-    if (search) {
-      setSearchQuery(search);
-    }
-  }, []); // Empty dependency array
-
-  // Get all categories from products
+  // --- Memoized Derived Data ---
   const categories = useMemo(() => {
-    const allCategories = ['all', ...new Set(products.map((p) => p.category))];
-    return allCategories.filter(
-      (category) => category !== undefined
-    ) as string[];
+    return ['all', ...new Set(products.map((p) => p.category))];
   }, [products]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
 
-    // Filter by search query
+    // 1. Filter by search query
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const lowercasedQuery = searchQuery.toLowerCase();
       result = result.filter(
         (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.brand.toLowerCase().includes(query) ||
-          p.category.toLowerCase().includes(query)
+          p.title.toLowerCase().includes(lowercasedQuery) ||
+          p.brand.toLowerCase().includes(lowercasedQuery) ||
+          p.category.toLowerCase().includes(lowercasedQuery)
       );
     }
 
-    // Filter by category
-    if (filter !== 'all') {
-      result = result.filter((p) => p.category === filter);
+    // 2. Filter by category
+    if (currentCategory !== 'all') {
+      result = result.filter((p) => p.category === currentCategory);
     }
 
-    // Sort products
-    if (sort === 'price-asc') {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sort === 'price-desc') {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sort === 'rating') {
-      result.sort((a, b) => b.rating - a.rating);
-    } else if (sort === 'newest') {
-      // For newest, we'll use the ID as a proxy for date added
-      result.sort((a, b) => b.id.localeCompare(a.id));
-    }
+    // 3. Sort the results
+    result.sort(sortOptions[currentSort]);
 
     return result;
-  }, [products, filter, sort, searchQuery]);
+  }, [products, searchQuery, currentCategory, currentSort]);
 
-  // Rest of the component remains the same...
-  // Pagination logic
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    return filteredAndSortedProducts.slice(
+      startIndex,
+      startIndex + PRODUCTS_PER_PAGE
+    );
+  }, [filteredAndSortedProducts, currentPage]);
+
   const totalPages = Math.ceil(
-    filteredAndSortedProducts.length / productsPerPage
-  );
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const paginatedProducts = filteredAndSortedProducts.slice(
-    startIndex,
-    startIndex + productsPerPage
+    filteredAndSortedProducts.length / PRODUCTS_PER_PAGE
   );
 
-  const currentTitle = searchQuery
-    ? `Search Results for "${searchQuery}"`
-    : title;
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: filteredAndSortedProducts.length,
+    pageSize: PRODUCTS_PER_PAGE,
+  });
+
+  // --- Stable Event Handlers ---
+  const createQueryString = useCallback(
+    (params: Record<string, string | number | null>) => {
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(params)) {
+        if (value === null) {
+          newSearchParams.delete(key);
+        } else {
+          newSearchParams.set(key, String(value));
+        }
+      }
+      return newSearchParams.toString();
+    },
+    [searchParams]
+  );
+
+  const handleFilterChange = (newCategory: string) => {
+    router.push(
+      `${pathname}?${createQueryString({ category: newCategory, page: 1 })}`,
+      { scroll: false }
+    );
+  };
+
+  const handleSortChange = (newSort: string) => {
+    router.push(
+      `${pathname}?${createQueryString({ sort: newSort, page: 1 })}`,
+      { scroll: false }
+    );
+  };
+
+  const handlePageChange = (newPage: number | string) => {
+    if (typeof newPage === 'number' && newPage >= 1 && newPage <= totalPages) {
+      router.push(`${pathname}?${createQueryString({ page: newPage })}`, {
+        scroll: true, // Scroll to top on page change
+      });
+    }
+  };
+
+  // --- Dynamic UI Text ---
+  const currentTitle = searchQuery ? `Results for "${searchQuery}"` : title;
   const currentSubtitle = searchQuery
     ? `${filteredAndSortedProducts.length} product(s) found`
     : subtitle;
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
-    <div className='bg-white dark:bg-slate-900'>
+    <div className='bg-slate-50 dark:bg-slate-900'>
       <div className='container mx-auto px-4 py-16'>
+        {/* Header and Filters */}
         <div className='md:flex md:items-center md:justify-between'>
           <div>
             <h2 className='text-3xl font-bold tracking-tight text-slate-900 dark:text-white'>
@@ -113,56 +151,49 @@ const ProductGrid = ({
               {currentSubtitle}
             </p>
           </div>
-          {!searchQuery && (
-            <div className='mt-4 md:mt-0 flex flex-col sm:flex-row gap-4'>
-              <div className='relative'>
-                <select
-                  value={filter}
-                  onChange={(e) => {
-                    setFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className='appearance-none w-full sm:w-auto rounded-md border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white'
-                >
-                  {categories.map((c) => (
-                    <option key={c} value={c}>
-                      {c === 'all'
-                        ? 'All Categories'
-                        : c.charAt(0).toUpperCase() + c.slice(1)}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className='pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400' />
-              </div>
-              <div className='relative'>
-                <select
-                  value={sort}
-                  onChange={(e) => {
-                    setSort(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className='appearance-none w-full sm:w-auto rounded-md border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white'
-                >
-                  <option value='featured'>Sort: Featured</option>
-                  <option value='price-asc'>Sort: Price Low to High</option>
-                  <option value='price-desc'>Sort: Price High to Low</option>
-                  <option value='rating'>Sort: Highest Rated</option>
-                  <option value='newest'>Sort: Newest</option>
-                </select>
-                <ChevronDown className='pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400' />
-              </div>
+          <div className='mt-4 flex flex-col gap-4 sm:flex-row md:mt-0'>
+            {/* Category Filter */}
+            <div className='relative'>
+              <select
+                value={currentCategory}
+                onChange={(e) => handleFilterChange(e.target.value)}
+                className='w-full cursor-pointer appearance-none rounded-md border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:w-auto'
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c === 'all' ? 'All Categories' : c}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className='pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400' />
             </div>
-          )}
+            {/* Sort Dropdown */}
+            <div className='relative'>
+              <select
+                value={currentSort}
+                onChange={(e) => handleSortChange(e.target.value)}
+                className='w-full cursor-pointer appearance-none rounded-md border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:w-auto'
+              >
+                <option value='featured'>Sort: Featured</option>
+                <option value='price-asc'>Sort: Price Low to High</option>
+                <option value='price-desc'>Sort: Price High to Low</option>
+                <option value='rating'>Sort: Highest Rated</option>
+                <option value='newest'>Sort: Newest</option>
+              </select>
+              <ChevronDown className='pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400' />
+            </div>
+          </div>
         </div>
 
+        {/* Product Grid */}
         <div className='mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           {paginatedProducts.length > 0 ? (
             paginatedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))
           ) : (
-            <div className='col-span-full text-center py-16'>
-              <p className='text-slate-500 text-lg dark:text-slate-400'>
+            <div className='col-span-full py-16 text-center'>
+              <p className='text-lg text-slate-500 dark:text-slate-400'>
                 No products found.
               </p>
               <p className='text-slate-400 dark:text-slate-500'>
@@ -178,33 +209,41 @@ const ProductGrid = ({
             <nav className='flex items-center gap-2'>
               <Button
                 variant='outline'
-                size='sm'
+                size='icon'
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
+                aria-label='Go to previous page'
               >
-                <ChevronDown className='h-4 w-4 rotate-90' />
+                <ChevronLeft className='h-4 w-4' />
               </Button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
+              {paginationRange.map((page, index) =>
+                page === DOTS ? (
+                  <span
+                    key={`dots-${index}`}
+                    className='flex h-9 w-9 items-center justify-center'
+                  >
+                    &#8230;
+                  </span>
+                ) : (
                   <Button
                     key={page}
                     variant={currentPage === page ? 'default' : 'outline'}
-                    size='sm'
+                    size='icon'
                     onClick={() => handlePageChange(page)}
+                    aria-current={currentPage === page ? 'page' : undefined}
                   >
                     {page}
                   </Button>
                 )
               )}
-
               <Button
                 variant='outline'
-                size='sm'
+                size='icon'
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
+                aria-label='Go to next page'
               >
-                <ChevronDown className='h-4 w-4 -rotate-90' />
+                <ChevronRight className='h-4 w-4' />
               </Button>
             </nav>
           </div>

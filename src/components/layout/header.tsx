@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 import {
   Heart,
   Menu,
@@ -15,8 +16,14 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import React, { useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 const Header = () => {
   const {
@@ -24,230 +31,260 @@ const Header = () => {
     cart,
     wishlist,
     logout,
-    searchQuery,
-    setSearchQuery,
+    products,
+    setSearchQuery, // We'll now use this to update the global state after debouncing
     theme,
     setTheme,
     setIsMenuOpen,
-    products,
-    setSelectedProductId,
   } = useApp();
 
   const router = useRouter();
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const pathname = usePathname();
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  // State for the physical input field, responds instantly
+  const [inputValue, setInputValue] = useState('');
+  // Debounced value, updates only after user stops typing for 300ms
+  const debouncedSearchQuery = useDebounce(inputValue, 300);
 
-  // NEW: State to track if the component has hydrated
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
 
-  // NEW: Set hasMounted to true after the first render
+  // Effect to handle client-side-only rendering
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
-  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  // Effect to update the global search query after debouncing
+  useEffect(() => {
+    setSearchQuery(debouncedSearchQuery);
+  }, [debouncedSearchQuery, setSearchQuery]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
+  // Smarter effect to clear search input on navigation
+  useEffect(() => {
+    // Do not clear the input if we are navigating to the products page to see results
+    if (!pathname.startsWith('/products')) {
+      setInputValue('');
+    }
+  }, [pathname]);
 
-  const handleClearSearch = () => {
-    setSearchQuery('');
-  };
+  // Memoize cart item count to prevent recalculation on every render
+  const cartItemCount = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.quantity, 0);
+  }, [cart]);
 
+  // Memoize search results to only filter when the debounced query or products change
   const searchResults = useMemo(() => {
-    if (!searchQuery) return [];
+    if (!debouncedSearchQuery) return [];
+    const query = debouncedSearchQuery.toLowerCase();
     return products
       .filter(
         (p) =>
-          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.category.toLowerCase().includes(searchQuery.toLowerCase())
+          p.title.toLowerCase().includes(query) ||
+          p.brand.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query)
       )
       .slice(0, 5);
-  }, [searchQuery, products]);
+  }, [debouncedSearchQuery, products]);
 
-  const handleSearchClick = (productId: string) => {
-    setSelectedProductId(productId);
-    setSearchQuery('');
-    router.push(`/products/${productId}`);
-  };
-
-  const navigateToSearchResults = () => {
-    if (searchQuery) {
-      router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
+  // Navigate to the main search results page
+  const navigateToSearchResults = useCallback(() => {
+    if (inputValue) {
+      router.push(`/products?search=${encodeURIComponent(inputValue)}`);
+      setIsSearchFocused(false); // Hide dropdown on navigation
     }
+  }, [inputValue, router]);
+
+  const handleProductSelection = () => {
+    setIsSearchFocused(false);
+    setInputValue(''); // Also clear the input for a better UX
   };
 
-  // Navigation functions using router
-  const navigateTo = (path: string) => {
-    router.push(path);
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      navigateToSearchResults();
+    }
+    // Add this new condition
+    else if (e.key === 'ArrowDown') {
+      e.preventDefault(); // Prevent the cursor from moving in the input
+      // Find the first link inside the search results and focus it
+      const firstResult = searchContainerRef.current?.querySelector('a');
+      if (firstResult) {
+        firstResult.focus();
+      }
+    }
   };
 
   return (
     <header className='sticky top-0 z-30 w-full border-b bg-white/80 backdrop-blur-sm dark:bg-slate-950/80 dark:border-slate-800'>
-      <div className='container mx-auto flex h-16 items-center justify-between px-4 gap-4'>
-        <Link
-          href='/'
-          onClick={(e) => {
-            e.preventDefault();
-            navigateTo('/');
-          }}
-          className='flex items-center gap-2 flex-shrink-0'
-        >
+      <div className='container mx-auto flex h-16 items-center justify-between gap-4 px-4'>
+        {/* IMPROVEMENT: Using Next.js Link for optimized navigation */}
+        <Link href='/' className='flex flex-shrink-0 items-center gap-2'>
           <Zap className='h-6 w-6 text-slate-900 dark:text-white' />
-          <span className='text-xl font-bold hidden sm:inline dark:text-white'>
+          <span className='hidden text-xl font-bold dark:text-white sm:inline'>
             Electro
           </span>
         </Link>
 
-        <div className='flex-1 max-w-md relative'>
+        {/* --- Search Bar --- */}
+        <div
+          ref={searchContainerRef}
+          onBlur={(e: React.FocusEvent<HTMLDivElement>) => {
+            // If the new focused element is NOT inside the container, then close the dropdown
+            if (
+              !searchContainerRef.current?.contains(e.relatedTarget as Node)
+            ) {
+              setIsSearchFocused(false);
+            }
+          }}
+          className='relative max-w-md flex-1'
+        >
           <div className='relative'>
             <Input
               placeholder='Search products...'
               className='pr-10'
-              value={searchQuery}
-              onChange={handleSearchChange}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchQuery) {
-                  navigateToSearchResults();
-                }
-              }}
+              onKeyDown={handleSearchKeyDown}
             />
-            {searchQuery ? (
+            {inputValue ? (
               <button
-                onClick={handleClearSearch}
-                className='absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 hover:text-slate-600'
+                onClick={() => setInputValue('')}
+                aria-label='Clear search' // ACCESSIBILITY
+                className='absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 hover:text-slate-600'
               >
                 <X className='h-5 w-5' />
               </button>
             ) : (
-              <Search className='absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none' />
+              <Search className='pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400' />
             )}
           </div>
 
-          {searchQuery && searchResults.length > 0 && isSearchFocused && (
-            <div className='absolute top-full mt-2 left-0 right-0 bg-white dark:bg-slate-900 rounded-md shadow-lg z-20 border border-slate-200 dark:border-slate-800 p-2'>
-              {searchResults.map((product) => (
-                <a
-                  key={product.id}
-                  href='#'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSearchClick(product.id);
-                  }}
-                  className='flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800'
-                >
-                  <div className='h-10 w-10 relative flex-shrink-0'>
-                    <Image
-                      src={product.images?.[0] || '/images/placeholder.jpg'}
-                      alt={product.title}
-                      fill
-                      className='object-cover rounded-md'
-                      sizes='40px'
-                    />
-                  </div>
-                  <div>
-                    <div className='font-medium text-sm dark:text-white'>
-                      {product.title}
-                    </div>
-                    <div className='text-xs text-slate-500 dark:text-slate-400'>
-                      {product.brand}
-                    </div>
-                  </div>
-                </a>
-              ))}
-              <div className='p-2 border-t dark:border-slate-800'>
+          {isSearchFocused && inputValue && searchResults.length > 0 && (
+            <div className='absolute left-0 right-0 top-full z-20 mt-2 rounded-md border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-800 dark:bg-slate-900'>
+              <ul className='flex flex-col'>
+                {searchResults.map((product) => (
+                  <li key={product.id}>
+                    {/* IMPROVEMENT: Using Link for direct navigation */}
+                    <Link
+                      href={`/products/${product.id}`}
+                      onClick={handleProductSelection}
+                      className='flex items-center gap-3 rounded-md p-2 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    >
+                      <div className='relative h-10 w-10 flex-shrink-0'>
+                        <Image
+                          src={product.images?.[0] || '/images/placeholder.jpg'}
+                          alt={product.title}
+                          fill
+                          className='rounded-md object-cover'
+                          sizes='40px'
+                        />
+                      </div>
+                      <div>
+                        <div className='text-sm font-medium dark:text-white'>
+                          {product.title}
+                        </div>
+                        <div className='text-xs text-slate-500 dark:text-slate-400'>
+                          {product.brand}
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <div className='border-t p-2 dark:border-slate-800'>
                 <Button
                   variant='link'
                   size='sm'
                   onClick={navigateToSearchResults}
                   className='w-full'
                 >
-                  View all results for {searchQuery}
+                  View all results
                 </Button>
               </div>
             </div>
           )}
         </div>
 
-        <nav className='hidden md:flex items-center gap-4'>
-          <a
+        {/* --- Main Navigation --- */}
+        <nav className='hidden items-center gap-4 xl:flex'>
+          <Link
             href='/products'
-            onClick={(e) => {
-              e.preventDefault();
-              navigateTo('/products');
-            }}
             className='text-sm font-medium hover:text-slate-900 dark:hover:text-white'
           >
             Products
-          </a>
-          <a
+          </Link>
+          <Link
             href='/about'
-            onClick={(e) => {
-              e.preventDefault();
-              navigateTo('/about');
-            }}
             className='text-sm font-medium hover:text-slate-900 dark:hover:text-white'
           >
             About
-          </a>
-          <a
+          </Link>
+          <Link
             href='/contact'
-            onClick={(e) => {
-              e.preventDefault();
-              navigateTo('/contact');
-            }}
             className='text-sm font-medium hover:text-slate-900 dark:hover:text-white'
           >
             Contact
-          </a>
+          </Link>
         </nav>
 
+        {/* --- Actions --- */}
         <div className='flex items-center gap-2 sm:gap-4'>
           <Button
             variant='ghost'
             size='icon'
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            aria-label='Toggle theme' // ACCESSIBILITY
           >
             <Sun className='h-6 w-6 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0' />
             <Moon className='absolute h-6 w-6 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100' />
           </Button>
 
-          <button onClick={() => navigateTo('/wishlist')} className='relative'>
-            <Heart className='h-6 w-6 text-slate-600 dark:text-slate-300' />
+          <Link
+            href='/wishlist'
+            className='relative'
+            aria-label='View wishlist'
+          >
+            {' '}
+            {/* ACCESSIBILITY */}
+            <Heart className='h-4 w-4 text-slate-600 dark:text-slate-300' />
             {wishlist.size > 0 && (
-              <span className='absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-xs text-white dark:bg-slate-50 dark:text-slate-900'>
+              <span className='absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-xs text-white dark:bg-slate-50 dark:text-slate-900'>
                 {wishlist.size}
               </span>
             )}
-          </button>
+          </Link>
 
-          <button onClick={() => navigateTo('/cart')} className='relative'>
-            <ShoppingCart className='h-6 w-6 text-slate-600 dark:text-slate-300' />
+          <Link
+            href='/cart'
+            className='relative'
+            aria-label='View shopping cart'
+          >
+            {' '}
+            {/* ACCESSIBILITY */}
+            <ShoppingCart className='h-4 w-4 text-slate-600 dark:text-slate-300' />
             {cartItemCount > 0 && (
-              <span className='absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-xs text-white dark:bg-slate-50 dark:text-slate-900'>
+              <span className='absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-xs text-white dark:bg-slate-50 dark:text-slate-900'>
                 {cartItemCount}
               </span>
             )}
-          </button>
+          </Link>
+
           {hasMounted && (
-            <div className='hidden md:flex items-center gap-2'>
+            <div className='hidden items-center gap-2 md:flex'>
               {user ? (
                 <>
                   <span className='text-sm font-medium dark:text-white'>
-                    Hi, {user.name}
+                    Hi, {user.name.split(' ')[0]}
                   </span>
                   <Button variant='outline' size='sm' onClick={logout}>
                     Logout
                   </Button>
                 </>
               ) : (
-                <Button size='sm' onClick={() => navigateTo('/auth')}>
-                  Login
-                </Button>
+                <Link href='/auth'>
+                  <Button size='sm'>Login</Button>
+                </Link>
               )}
             </div>
           )}
@@ -257,6 +294,7 @@ const Header = () => {
               variant='ghost'
               size='icon'
               onClick={() => setIsMenuOpen(true)}
+              aria-label='Open menu' // ACCESSIBILITY
             >
               <Menu className='h-6 w-6' />
             </Button>

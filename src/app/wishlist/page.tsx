@@ -6,15 +6,21 @@ import { priceFmt } from '@/lib/utils/formatters';
 import { getProductImage } from '@/lib/utils/product-images';
 import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
 const WishlistPage = () => {
+  const router = useRouter();
   const { wishlist, setPage, addToCart, toggleWishlist, products } = useApp();
 
   const wishlistedProducts = useMemo(
     () => products.filter((p) => wishlist.has(p.id)),
     [wishlist, products]
   );
+    const viewProduct = (productId: string) => {
+    router.push(`/products/${productId}`);
+  };
 
   const handleAddToCart = (productId: string) => {
     const product = products.find((p) => p.id === productId);
@@ -77,7 +83,14 @@ const WishlistPage = () => {
               </div>
               <div className='p-4 flex flex-col flex-grow'>
                 <h3 className='font-semibold text-slate-800 dark:text-white'>
-                  {product.title}
+                   <Link 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); viewProduct(product.id); }}
+                className="hover:underline cursor-pointer"
+              >
+                {product.title}
+              </Link>
+                  
                 </h3>
                 <p className='text-slate-500 text-sm dark:text-slate-400'>
                   {product.brand}

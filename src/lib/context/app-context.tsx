@@ -166,7 +166,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Refactored to handle redirection to a specific order page
   const viewOrder = useCallback(
     (orderId: string) => {
-      // Corrected path to match the file-based routing
       navigateTo(`account/orders/${orderId}`);
     },
     [navigateTo]
@@ -433,10 +432,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (productId: string, review: Omit<Review, 'id'>) => {
       const updatedProducts = state.products.map((p) => {
         if (p.id === productId) {
-          const newReviews = [
-            ...(p.reviews || []),
-            { ...review, id: Date.now() },
-          ];
+          // Check if the review already exists
+          const existingReviewIndex = p.reviews?.findIndex(
+            (r) => r.id === review.id
+          );
+
+          let newReviews = [...(p.reviews || [])];
+          if (existingReviewIndex !== undefined && existingReviewIndex > -1) {
+            // Edit existing review
+            newReviews[existingReviewIndex] = {
+              ...newReviews[existingReviewIndex],
+              ...review,
+            };
+            showToast('Review updated successfully!');
+          } else {
+            // Add new review to the top
+            newReviews = [{ ...review, id: Date.now() }, ...newReviews];
+            showToast('Thank you for your review!');
+          }
+
           const newTotalRating = newReviews.reduce(
             (sum, r) => sum + r.rating,
             0
@@ -454,7 +468,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
 
       dispatch({ type: 'SET_PRODUCTS', payload: updatedProducts });
-      showToast('Thank you for your review!');
     },
     [state.products, showToast]
   );

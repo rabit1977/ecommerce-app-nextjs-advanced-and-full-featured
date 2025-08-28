@@ -47,7 +47,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   options: Record<string, string>;
-  image: string;
+  image: string;  
 }
 
 export interface Order {

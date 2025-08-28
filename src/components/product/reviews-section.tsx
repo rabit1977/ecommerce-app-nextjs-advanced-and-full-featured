@@ -3,8 +3,10 @@
 import { Stars } from '@/components/ui/stars';
 import { useApp } from '@/lib/context/app-context';
 import { Review } from '@/lib/types';
-import { ThumbsUp } from 'lucide-react';
+import { ThumbsUp, Pencil } from 'lucide-react';
 import { AddReviewForm } from './add-review-form';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface ReviewsSectionProps {
   productId: string;
@@ -13,6 +15,16 @@ interface ReviewsSectionProps {
 
 const ReviewsSection = ({ productId, reviews }: ReviewsSectionProps) => {
   const { user, updateReviewHelpfulCount } = useApp();
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+
+  const handleEditClick = (review: Review) => {
+    setEditingReview(review);
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingReview(null);
+  };
+  
 
   return (
     <div className='mt-12 py-8 border-t dark:border-slate-800'>
@@ -20,7 +32,13 @@ const ReviewsSection = ({ productId, reviews }: ReviewsSectionProps) => {
         Customer Reviews
       </h2>
 
-      {user && <AddReviewForm productId={productId} />}
+      {user && (
+        <AddReviewForm 
+          productId={productId} 
+          reviewToEdit={editingReview}
+          onCancelEdit={handleCancelEdit}
+        />
+      )}
 
       <div className='mt-6 space-y-8'>
         {reviews.length === 0 ? (
@@ -53,6 +71,18 @@ const ReviewsSection = ({ productId, reviews }: ReviewsSectionProps) => {
                     <ThumbsUp className='h-4 w-4' />
                     <span>Helpful ({review.helpful || 0})</span>
                   </button>
+                  {/* NEW: Edit button for the user's own review */}
+                  {user && user.name === review.name && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditClick(review)}
+                      className="ml-2 flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400"
+                    >
+                      <Pencil className='h-4 w-4' />
+                      <span>Edit</span>
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

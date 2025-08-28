@@ -7,42 +7,39 @@ import { Product } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { priceFmt } from '@/lib/utils/formatters';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Eye, Heart } from 'lucide-react';
-import Image from 'next/image';
-import React, { useState } from 'react';
+import { Eye, Heart } from 'lucide-react';
+import Link from 'next/link';
+import React, { useCallback, useMemo, useTransition } from 'react';
+import { ProductImageCarousel } from './product-image-carousel';
 
 interface ProductCardProps {
   product: Product;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
-  const { viewProduct, setQuickViewProductId, wishlist, toggleWishlist } =
-    useApp();
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const isWished = wishlist.has(product.id);
+const ProductCard = React.memo(({ product }: ProductCardProps) => {
+  // We now get the wishlist and toggle function directly from your client-side context
+  const { setQuickViewProductId, wishlist, toggleWishlist } = useApp();
+  const [isPending, startTransition] = useTransition();
 
-  const handlePrevImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const imageCount =
-      product.images?.length || product.options?.[0]?.variants?.length || 0;
-    setActiveImageIndex((prev) => (prev === 0 ? imageCount - 1 : prev - 1));
-  };
+  // The source of truth is the client-side wishlist Set from your context
+  const isWished = useMemo(
+    () => wishlist.has(product.id),
+    [wishlist, product.id]
+  );
+  const isOutOfStock = useMemo(() => product.stock === 0, [product.stock]);
 
-  const handleNextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const imageCount =
-      product.images?.length || product.options?.[0]?.variants?.length || 0;
-    setActiveImageIndex((prev) => (prev === imageCount - 1 ? 0 : prev + 1));
-  };
+  const handleQuickViewClick = useCallback(() => {
+    setQuickViewProductId(product.id);
+  }, [product.id, setQuickViewProductId]);
 
-  const isOutOfStock = product.stock === 0;
-  const primaryImage =
-    product.options?.[0]?.variants?.[0]?.image ||
-    product.images?.[0] ||
-    '/images/placeholder.jpg';
-  const displayImages =
-    product.images || product.options?.[0]?.variants?.map((v) => v.image) || [];
-  const displayImage = displayImages[activeImageIndex] || primaryImage;
+  // This handler now uses useTransition for a non-blocking UI update
+  const handleToggleWishlist = useCallback(() => {
+    startTransition(() => {
+      // This state update is marked as a transition. React will keep the UI
+      // responsive while this runs in the background.
+      toggleWishlist(product.id);
+    });
+  }, [product.id, toggleWishlist]);
 
   return (
     <motion.div
@@ -50,97 +47,44 @@ const ProductCard = ({ product }: ProductCardProps) => {
       whileHover={{ y: -5 }}
       className='w-full'
     >
-      <div className='group relative w-full overflow-hidden rounded-2xl border bg-white shadow-md transition-shadow hover:shadow-xl dark:bg-slate-900 dark:border-slate-800'>
-        <div
-          className='h-48 w-full overflow-hidden relative'
-          onClick={() => viewProduct(product.id)}
-        >
-          <Image
-            src={displayImage || '/images/placeholder.jpg'}
-            alt={product.title}
-            fill
-            className='object-cover'
-            sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
-          />
+      <div className='group relative w-full overflow-hidden rounded-2xl border bg-white shadow-md transition-shadow hover:shadow-xl dark:border-slate-800 dark:bg-slate-900'>
+        <ProductImageCarousel product={product} />
 
-          {displayImages.length > 1 && (
-            <>
-              <div className='absolute inset-0 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                <Button
-                  size='icon'
-                  variant='secondary'
-                  className='rounded-full h-8 w-8 ml-2 shadow-md'
-                  onClick={handlePrevImage}
-                >
-                  <ChevronLeft className='h-4 w-4' />
-                </Button>
-                <Button
-                  size='icon'
-                  variant='secondary'
-                  className='rounded-full h-8 w-8 mr-2 shadow-md'
-                  onClick={handleNextImage}
-                >
-                  <ChevronRight className='h-4 w-4' />
-                </Button>
-              </div>
-              <div className='absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5'>
-                {displayImages.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveImageIndex(index);
-                    }}
-                    className={cn(
-                      'h-1.5 w-1.5 rounded-full transition-all duration-300',
-                      activeImageIndex === index
-                        ? 'bg-white ring-1 ring-slate-500 scale-125'
-                        : 'bg-white/60'
-                    )}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-          {isOutOfStock && (
-            <div className='absolute inset-0 bg-black/50 flex items-center justify-center'>
-              <span className='text-white font-bold uppercase tracking-widest'>
-                Out of Stock
-              </span>
-            </div>
-          )}
-        </div>
+        {isOutOfStock && (
+          <div className='pointer-events-none absolute inset-0 top-0 flex h-48 items-center justify-center bg-black/50'>
+            <span className='font-bold uppercase tracking-widest text-white'>
+              Out of Stock
+            </span>
+          </div>
+        )}
 
-        <div className='absolute top-2 right-2 flex flex-col gap-2'>
+        <div className='absolute right-2 top-2 flex gap-2'>
           <Button
             size='icon'
             variant='secondary'
-            className='rounded-full h-8 w-8 shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300'
-            onClick={(e) => {
-              e.stopPropagation();
-              setQuickViewProductId(product.id);
-            }}
+            className='h-8 w-8 rounded-full shadow-md opacity-0 transition-opacity duration-300 group-hover:opacity-100'
+            onClick={handleQuickViewClick}
+            aria-label='Quick view'
           >
             <Eye className='h-4 w-4' />
           </Button>
           <Button
             size='icon'
             variant={isWished ? 'default' : 'secondary'}
-            className='rounded-full h-8 w-8 shadow-md'
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleWishlist(product.id);
-            }}
+            className='h-8 w-8 rounded-full shadow-md'
+            onClick={handleToggleWishlist}
+            disabled={isPending} // Disable the button while the transition is pending
+            aria-label={isWished ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            <Heart className={cn('h-4 w-4', isWished ? 'fill-white' : '')} />
+            <Heart className={cn('h-4 w-4', isWished && 'fill-white')} />
           </Button>
         </div>
 
-        <div className='p-4' onClick={() => viewProduct(product.id)}>
+        <Link href={`/products/${product.id}`} className='block p-4'>
           <div className='text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400'>
             {product.brand}
           </div>
-          <h3 className='text-lg font-semibold leading-tight text-slate-900 truncate dark:text-white'>
+          <h3 className='truncate text-lg font-semibold leading-tight text-slate-900 dark:text-white'>
             {product.title}
           </h3>
           <div className='mt-2 flex items-center justify-between'>
@@ -154,10 +98,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
               </span>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </motion.div>
   );
-};
+});
 
+ProductCard.displayName = 'ProductCard';
 export { ProductCard };

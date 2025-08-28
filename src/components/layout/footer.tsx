@@ -2,7 +2,7 @@
 
 export function Footer() {
   return (
-    <footer className='bg-muted'>
+    <footer className=''>
       <div className='container mx-auto px-4 py-12'>
         <div className='grid gap-8 md:grid-cols-4'>
           <div>

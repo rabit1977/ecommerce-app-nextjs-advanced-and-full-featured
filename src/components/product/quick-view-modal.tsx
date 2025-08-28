@@ -239,7 +239,7 @@ const QuickViewModal = () => {
                         </>
                     ) : (
                         <>
-                            <ShoppingCart className="h-5 w-5" />
+                            <ShoppingCart className="h-5 w-5 cursor-pointer" />
                             {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                         </>
                     )}

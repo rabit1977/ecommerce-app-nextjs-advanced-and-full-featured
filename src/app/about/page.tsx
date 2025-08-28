@@ -96,7 +96,7 @@ const AboutPage = () => {
                 <h3 className='mt-4 text-lg font-semibold dark:text-white'>
                   {member.name}
                 </h3>
-                <p className='text-slate-600 dark:text-slate-300'>
+                <p className='text-slate-600 text-sm dark:text-slate-300'>
                   {member.role}
                 </p>
               </div>
