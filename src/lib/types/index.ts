@@ -34,6 +34,12 @@ export interface Review {
   helpful: number;
 }
 
+export interface AddReviewFormProps {
+  productId: string;
+  reviewToEdit?: Review | null; // New optional prop for editing
+  onCancelEdit: () => void;
+}
+
 export interface User {
   name: string;
   email: string;

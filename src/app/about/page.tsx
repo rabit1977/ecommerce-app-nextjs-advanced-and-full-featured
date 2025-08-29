@@ -1,8 +1,12 @@
-'use client';
-
 import { aboutContent } from '@/lib/constants/about-data';
 import { Heart, ShieldCheck, Zap } from 'lucide-react';
 import Image from 'next/image';
+// app/about/page.tsx
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Us', // This will become "About Us | My Awesome Store"
+};
 
 const AboutPage = () => {
   return (

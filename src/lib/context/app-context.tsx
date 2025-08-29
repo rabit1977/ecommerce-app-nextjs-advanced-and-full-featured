@@ -1,15 +1,24 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import React, {
+import {
   createContext,
+  ReactNode,
   useCallback,
   useContext,
   useEffect,
 } from 'react';
 import { initialProducts } from '../constants/products';
-import { AppState, CartItem, Order, Review } from '../types';
 import { useLocalStorageReducer } from '../hooks/useLocalStorage';
+import { AppState, CartItem, Order, Product, Review, User } from '../types'; // Ensure all types are imported
+
+// Define a payload for adding/updating reviews
+interface ReviewPayload {
+  id?: number;
+  name: string;
+  rating: number;
+  comment: string;
+}
 
 interface AppContextType extends AppState {
   // Navigation functions
@@ -44,7 +53,7 @@ interface AppContextType extends AppState {
   placeOrder: (orderDetails: Omit<Order, 'id' | 'date'>) => string;
 
   // Review actions
-  addReview: (productId: string, review: Omit<Review, 'id'>) => void;
+  addReview: (productId: string, review: ReviewPayload) => void; // Corrected signature
   updateReviewHelpfulCount: (productId: string, reviewId: number) => void;
 
   // UI actions
@@ -57,9 +66,26 @@ interface AppContextType extends AppState {
   setSelectedProductId: (productId: string | null) => void;
 }
 
+// 1. FIXED: Define a strict type for all reducer actions
+type AppAction =
+  | { type: 'SET_INITIAL_STATE'; payload: Partial<AppState> }
+  | { type: 'SET_USER'; payload: User | null }
+  | { type: 'SET_USERS'; payload: User[] }
+  | { type: 'SET_CART'; payload: CartItem[] }
+  | { type: 'SET_WISHLIST'; payload: Set<string> }
+  | { type: 'SET_ORDERS'; payload: Order[] }
+  | { type: 'SET_PRODUCTS'; payload: Product[] }
+  | { type: 'SET_SAVED_FOR_LATER'; payload: CartItem[] }
+  | { type: 'SET_THEME'; payload: 'light' | 'dark' }
+  | { type: 'SET_SEARCH_QUERY'; payload: string }
+  | { type: 'SET_IS_MENU_OPEN'; payload: boolean }
+  | { type: 'SET_SELECTED_PRODUCT_ID'; payload: string | null }
+  | { type: 'SET_QUICK_VIEW_PRODUCT_ID'; payload: string | null }
+  | { type: 'SET_SELECTED_ORDER'; payload: string | null }
+  | { type: 'SET_TOAST'; payload: string | null };
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Initial state
 const initialState: AppState = {
   user: null,
   users: [],
@@ -77,8 +103,8 @@ const initialState: AppState = {
   toast: null,
 };
 
-// Reducer function
-function appReducer(state: AppState, action: any): AppState {
+// 2. FIXED: Use the AppAction type and clean up the reducer
+function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_INITIAL_STATE':
       return { ...state, ...action.payload };
@@ -110,30 +136,12 @@ function appReducer(state: AppState, action: any): AppState {
       return { ...state, selectedOrder: action.payload };
     case 'SET_TOAST':
       return { ...state, toast: action.payload };
-    case 'ADD_TO_CART':
-      return { ...state, cart: action.payload };
-    case 'UPDATE_CART_QUANTITY':
-      return { ...state, cart: action.payload };
-    case 'REMOVE_FROM_CART':
-      return { ...state, cart: action.payload };
-    case 'ADD_TO_SAVED':
-      return { ...state, savedForLater: action.payload };
-    case 'REMOVE_FROM_SAVED':
-      return { ...state, savedForLater: action.payload };
-    case 'ADD_TO_WISHLIST':
-      return { ...state, wishlist: action.payload };
-    case 'REMOVE_FROM_WISHLIST':
-      return { ...state, wishlist: action.payload };
-    case 'ADD_ORDER':
-      return { ...state, orders: action.payload };
-    case 'UPDATE_PRODUCTS':
-      return { ...state, products: action.payload };
     default:
       return state;
   }
 }
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
+export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useLocalStorageReducer(
     appReducer,
     initialState,
@@ -141,46 +149,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const router = useRouter();
 
-  // Navigation functions
   const navigateTo = useCallback(
-    (page: string) => {
-      router.push(`/${page === 'home' ? '' : page}`);
+    (path: string) => {
+      router.push(`/${path === 'home' ? '' : path}`);
     },
     [router]
   );
 
-  const setPage = useCallback(
-    (page: string) => {
-      navigateTo(page);
-    },
-    [navigateTo]
-  );
-
+  const setPage = useCallback((page: string) => navigateTo(page), [navigateTo]);
   const viewProduct = useCallback(
-    (productId: string) => {
-      navigateTo(`products/${productId}`);
-    },
+    (productId: string) => navigateTo(`products/${productId}`),
     [navigateTo]
   );
-
-  // Refactored to handle redirection to a specific order page
   const viewOrder = useCallback(
-    (orderId: string) => {
-      navigateTo(`account/orders/${orderId}`);
-    },
+    (orderId: string) => navigateTo(`account/orders/${orderId}`),
     [navigateTo]
   );
 
-  // Set theme class on HTML element - this is still needed as a side effect
   useEffect(() => {
-    if (state.theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', state.theme === 'dark');
   }, [state.theme]);
 
-  // Action functions
   const showToast = useCallback((message: string) => {
     dispatch({ type: 'SET_TOAST', payload: message });
     setTimeout(() => dispatch({ type: 'SET_TOAST', payload: null }), 3000);
@@ -188,15 +177,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     (email: string, password: string) => {
-      // Mock login logic
       const user = state.users.find(
         (u) => u.email === email && u.password === password
       );
-      console.log('Login attempt:', { email, password });
       if (user) {
         dispatch({ type: 'SET_USER', payload: user });
         showToast(`Welcome back, ${user.name}!`);
-        // Add this line to redirect the user to the home page
         setPage('home');
         return { success: true };
       }
@@ -212,19 +198,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const signup = useCallback(
     (name: string, email: string, password: string) => {
-      // Mock signup logic
-      const existingUser = state.users.find((u) => u.email === email);
-      console.log('Signup attempt:', { name, email });
-      if (existingUser) {
+      if (state.users.find((u) => u.email === email)) {
         return {
           success: false,
           message: 'An account with this email already exists.',
         };
       }
-
-      const newUser = { name, email, password };
-      const updatedUsers = [...state.users, newUser];
-      dispatch({ type: 'SET_USERS', payload: updatedUsers });
+      const newUser = { id: String(Date.now()), name, email, password };
+      dispatch({ type: 'SET_USERS', payload: [...state.users, newUser] });
       showToast(`Account created for ${name}! Please log in.`);
       return { success: true };
     },
@@ -234,29 +215,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addToCart = useCallback(
     (item: Omit<CartItem, 'cartItemId' | 'image'>) => {
       const product = state.products.find((p) => p.id === item.id);
-      if (!product) {
-        console.error('Product not found:', item.id);
-        return;
-      }
+      if (!product) return;
 
-      // Create a unique cart item ID based on product ID and selected options
       const cartItemId = `${item.id}-${JSON.stringify(item.options)}`;
+      const existingItem = state.cart.find((i) => i.cartItemId === cartItemId);
+      const currentQuantity = existingItem ? existingItem.quantity : 0;
 
-      const updatedCart = [...state.cart];
-      const existingItem = updatedCart.find((i) => i.cartItemId === cartItemId);
-      const currentQuantityInCart = existingItem ? existingItem.quantity : 0;
-
-      if (currentQuantityInCart + item.quantity > product.stock) {
+      if (currentQuantity + item.quantity > product.stock) {
         showToast(
           `Not enough stock for ${item.title}. Only ${product.stock} available.`
         );
         return;
       }
 
+      let updatedCart: CartItem[];
       if (existingItem) {
-        existingItem.quantity += item.quantity;
+        updatedCart = state.cart.map((cartItem) =>
+          cartItem.cartItemId === cartItemId
+            ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
+            : cartItem
+        );
       } else {
-        // Find the correct image based on the selected color, or fallback to the first image
         const colorOption = product.options?.find((o) => o.name === 'Color');
         const selectedVariant = colorOption?.variants.find(
           (v) => v.value === item.options?.Color
@@ -266,28 +245,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           product.images?.[0] ||
           '/images/placeholder.jpg';
 
-        updatedCart.push({
+        const newItem: CartItem = {
           ...item,
           cartItemId,
           image: itemImage,
-        } as CartItem);
+        };
+        updatedCart = [...state.cart, newItem];
       }
 
       dispatch({ type: 'SET_CART', payload: updatedCart });
       showToast(`${item.title} added to cart`);
-      console.log('Added to cart:', item, 'New cart:', updatedCart);
     },
     [state.products, state.cart, showToast]
   );
 
   const removeFromCart = useCallback(
     (cartItemId: string) => {
+      const itemToRemove = state.cart.find(
+        (item) => item.cartItemId === cartItemId
+      );
       const updatedCart = state.cart.filter(
         (item) => item.cartItemId !== cartItemId
       );
       dispatch({ type: 'SET_CART', payload: updatedCart });
+
+      // FIXED: Added the toast notification
+      if (itemToRemove) {
+        showToast(`'${itemToRemove.title}' removed from cart.`);
+      }
     },
-    [state.cart]
+    // FIXED: Added showToast to the dependency array
+    [state.cart, showToast]
   );
 
   const updateCartQuantity = useCallback(
@@ -295,18 +283,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const cartItem = state.cart.find((i) => i.cartItemId === cartItemId);
       if (!cartItem) return;
 
-      const product = state.products.find((p) => p.id === cartItem.id);
-      if (!product) return;
-
       if (newQuantity < 1) {
         removeFromCart(cartItemId);
         return;
       }
 
-      if (newQuantity > product.stock) {
-        showToast(
-          `Not enough stock for ${product.title}. Only ${product.stock} available.`
-        );
+      const product = state.products.find((p) => p.id === cartItem.id);
+      if (product && newQuantity > product.stock) {
+        showToast(`Not enough stock. Only ${product.stock} available.`);
         return;
       }
 
@@ -315,11 +299,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ? { ...item, quantity: newQuantity }
           : item
       );
-
       dispatch({ type: 'SET_CART', payload: updatedCart });
     },
     [state.cart, state.products, removeFromCart, showToast]
   );
+
   const saveForLater = useCallback(
     (cartItemId: string) => {
       const itemToSave = state.cart.find(
@@ -327,47 +311,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
       if (itemToSave) {
         removeFromCart(cartItemId);
-        const updatedSaved = [...state.savedForLater, itemToSave];
-        dispatch({ type: 'SET_SAVED_FOR_LATER', payload: updatedSaved });
+        dispatch({
+          type: 'SET_SAVED_FOR_LATER',
+          payload: [...state.savedForLater, itemToSave],
+        });
         showToast("Item moved to 'Saved for Later'.");
       }
     },
     [state.cart, state.savedForLater, removeFromCart, showToast]
-  );
-
-  const moveToCart = useCallback(
-    (cartItemId: string) => {
-      const itemToMove = state.savedForLater.find(
-        (item) => item.cartItemId === cartItemId
-      );
-      if (!itemToMove) return;
-
-      const product = state.products.find((p) => p.id === itemToMove.id);
-      if (!product) return;
-
-      if (itemToMove.quantity > product.stock) {
-        showToast(
-          `Not enough stock for ${itemToMove.title}. Only ${product.stock} available.`
-        );
-        return;
-      }
-
-      const updatedSaved = state.savedForLater.filter(
-        (item) => item.cartItemId !== cartItemId
-      );
-      dispatch({ type: 'SET_SAVED_FOR_LATER', payload: updatedSaved });
-
-      addToCart({
-        id: itemToMove.id,
-        quantity: itemToMove.quantity,
-        title: itemToMove.title,
-        price: itemToMove.price,
-        options: itemToMove.options,
-      });
-
-      showToast('Item moved to cart.');
-    },
-    [state.savedForLater, state.products, addToCart, showToast]
   );
 
   const removeFromSaved = useCallback(
@@ -379,6 +330,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       showToast('Item removed.');
     },
     [state.savedForLater, showToast]
+  );
+
+  const moveToCart = useCallback(
+    (cartItemId: string) => {
+      const itemToMove = state.savedForLater.find(
+        (item) => item.cartItemId === cartItemId
+      );
+      if (!itemToMove) return;
+
+      // Remove from saved list first
+      removeFromSaved(cartItemId);
+      // Add to cart (this will handle stock checks and merging quantities)
+      addToCart(itemToMove);
+      showToast('Item moved to cart.');
+    },
+    [state.savedForLater, addToCart, removeFromSaved, showToast]
   );
 
   const toggleWishlist = useCallback(
@@ -398,28 +365,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const placeOrder = useCallback(
     (orderDetails: Omit<Order, 'id' | 'date'>) => {
-      const newOrder = {
+      const newOrder: Order = {
         id: `ORD-${Date.now()}`,
-        date: new Date().toLocaleDateString(),
+        date: new Date().toISOString(),
         ...orderDetails,
       };
 
-      const updatedOrders = [newOrder, ...state.orders];
-      dispatch({ type: 'SET_ORDERS', payload: updatedOrders });
+      dispatch({ type: 'SET_ORDERS', payload: [newOrder, ...state.orders] });
 
-      // Decrement stock for each item in the order
       const updatedProducts = state.products.map((p) => {
         const orderItem = newOrder.items.find((item) => item.id === p.id);
-        if (orderItem) {
-          return { ...p, stock: p.stock - orderItem.quantity };
-        }
-        return p;
+        return orderItem ? { ...p, stock: p.stock - orderItem.quantity } : p;
       });
 
       dispatch({ type: 'SET_PRODUCTS', payload: updatedProducts });
       dispatch({ type: 'SET_CART', payload: [] });
 
-      // NEW: Show a success toast and redirect to the order page
       showToast('Order placed successfully!');
       viewOrder(newOrder.id);
 
@@ -428,39 +389,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.orders, state.products, showToast, viewOrder]
   );
 
+  // 3. FIXED: Rewritten `addReview` to handle both adding and editing
   const addReview = useCallback(
-    (productId: string, review: Omit<Review, 'id'>) => {
+    (productId: string, reviewData: ReviewPayload) => {
       const updatedProducts = state.products.map((p) => {
         if (p.id === productId) {
-          // Check if the review already exists
-          const existingReviewIndex = p.reviews?.findIndex(
-            (r) => r.id === review.id
-          );
-
           let newReviews = [...(p.reviews || [])];
-          if (existingReviewIndex !== undefined && existingReviewIndex > -1) {
-            // Edit existing review
-            newReviews[existingReviewIndex] = {
-              ...newReviews[existingReviewIndex],
-              ...review,
-            };
-            showToast('Review updated successfully!');
+
+          // Check if we are editing by seeing if an ID was passed
+          if (reviewData.id) {
+            const index = newReviews.findIndex((r) => r.id === reviewData.id);
+            if (index > -1) {
+              // Update existing review in place
+              newReviews[index] = {
+                ...newReviews[index], // Preserve date and helpful count
+                rating: reviewData.rating,
+                comment: reviewData.comment,
+              };
+              showToast('Review updated successfully!');
+            }
           } else {
-            // Add new review to the top
-            newReviews = [{ ...review, id: Date.now() }, ...newReviews];
+            // Add a new review
+            const newReview: Review = {
+              id: Date.now(),
+              name: reviewData.name,
+              rating: reviewData.rating,
+              comment: reviewData.comment,
+              date: new Date().toISOString(),
+              helpful: 0,
+            };
+            newReviews.unshift(newReview); // Add to the top
             showToast('Thank you for your review!');
           }
 
-          const newTotalRating = newReviews.reduce(
-            (sum, r) => sum + r.rating,
-            0
-          );
-          const newAverageRating = newTotalRating / newReviews.length;
+          // Recalculate average rating
+          const totalRating = newReviews.reduce((sum, r) => sum + r.rating, 0);
+          const averageRating = totalRating / newReviews.length;
 
           return {
             ...p,
             reviews: newReviews,
-            rating: parseFloat(newAverageRating.toFixed(1)),
+            rating: parseFloat(averageRating.toFixed(1)),
             reviewCount: newReviews.length,
           };
         }
@@ -476,71 +445,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (productId: string, reviewId: number) => {
       const updatedProducts = state.products.map((p) => {
         if (p.id === productId) {
-          const updatedReviews = p.reviews?.map((r) => {
-            if (r.id === reviewId) {
-              return { ...r, helpful: (r.helpful || 0) + 1 };
-            }
-            return r;
-          });
+          const updatedReviews = p.reviews?.map((r) =>
+            r.id === reviewId ? { ...r, helpful: (r.helpful || 0) + 1 } : r
+          );
           return { ...p, reviews: updatedReviews };
         }
         return p;
       });
-
       dispatch({ type: 'SET_PRODUCTS', payload: updatedProducts });
     },
     [state.products]
   );
 
-  const setSearchQuery = useCallback((query: string) => {
-    dispatch({ type: 'SET_SEARCH_QUERY', payload: query });
-  }, []);
-
-  const setTheme = useCallback((theme: 'light' | 'dark') => {
-    dispatch({ type: 'SET_THEME', payload: theme });
-  }, []);
-
-  const setIsMenuOpen = useCallback((isOpen: boolean) => {
-    dispatch({ type: 'SET_IS_MENU_OPEN', payload: isOpen });
-  }, []);
-
-  const setQuickViewProductId = useCallback((productId: string | null) => {
-    dispatch({ type: 'SET_QUICK_VIEW_PRODUCT_ID', payload: productId });
-  }, []);
-
-  const setSelectedOrder = useCallback((orderId: string | null) => {
-    dispatch({ type: 'SET_SELECTED_ORDER', payload: orderId });
-  }, []);
-
-  const setSelectedProductId = useCallback((productId: string | null) => {
-    dispatch({ type: 'SET_SELECTED_PRODUCT_ID', payload: productId });
-  }, []);
+  const setSearchQuery = useCallback(
+    (query: string) => dispatch({ type: 'SET_SEARCH_QUERY', payload: query }),
+    []
+  );
+  const setTheme = useCallback(
+    (theme: 'light' | 'dark') =>
+      dispatch({ type: 'SET_THEME', payload: theme }),
+    []
+  );
+  const setIsMenuOpen = useCallback(
+    (isOpen: boolean) =>
+      dispatch({ type: 'SET_IS_MENU_OPEN', payload: isOpen }),
+    []
+  );
+  const setQuickViewProductId = useCallback(
+    (id: string | null) =>
+      dispatch({ type: 'SET_QUICK_VIEW_PRODUCT_ID', payload: id }),
+    []
+  );
+  const setSelectedOrder = useCallback(
+    (id: string | null) =>
+      dispatch({ type: 'SET_SELECTED_ORDER', payload: id }),
+    []
+  );
+  const setSelectedProductId = useCallback(
+    (id: string | null) =>
+      dispatch({ type: 'SET_SELECTED_PRODUCT_ID', payload: id }),
+    []
+  );
 
   const value: AppContextType = {
     ...state,
-    // Navigation functions
     setPage,
     viewProduct,
     viewOrder,
-    // User actions
     login,
     logout,
     signup,
-    // Cart actions
     addToCart,
     updateCartQuantity,
     removeFromCart,
     saveForLater,
     moveToCart,
     removeFromSaved,
-    // Wishlist actions
     toggleWishlist,
-    // Order actions
     placeOrder,
-    // Review actions
     addReview,
     updateReviewHelpfulCount,
-    // UI actions
     showToast,
     setSearchQuery,
     setTheme,

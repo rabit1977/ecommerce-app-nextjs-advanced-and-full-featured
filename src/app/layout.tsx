@@ -14,9 +14,12 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Electro E-commerce',
-  description:
-    'A modern e-commerce application built with Next.js and TypeScript.',
+  // title.template will be used by child pages
+  title: {
+    template: '%s | My Awesome Store', // %s will be replaced by the child page's title
+    default: 'My Awesome Store', // The default title for the site
+  },
+  description: 'The best place to buy awesome things!',
 };
 
 export default function RootLayout({

@@ -4,6 +4,7 @@ import { ProductCard } from '@/components/product/product-card';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/lib/context/app-context';
 import { usePagination, DOTS } from '@/lib/hooks/usePagination';
+
 import { Product } from '@/lib/types';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
