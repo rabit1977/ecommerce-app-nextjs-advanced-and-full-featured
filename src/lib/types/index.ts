@@ -96,6 +96,7 @@ export interface AppState {
   savedForLater: CartItem[];
   theme: 'light' | 'dark';
   searchQuery: string;
+  isLoading: boolean;
   isMenuOpen: boolean;
   selectedProductId: string | null;
   quickViewProductId: string | null;

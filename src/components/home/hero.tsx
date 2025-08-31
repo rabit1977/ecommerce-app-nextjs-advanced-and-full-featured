@@ -21,7 +21,7 @@ const Hero = () => {
 
   const carouselProducts = useMemo(() => {
     // Show the first 5 products for a focused carousel
-    return products.slice(0, 5); 
+    return products.slice(0, 8); 
   }, [products]);
   
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
@@ -63,7 +63,7 @@ const Hero = () => {
   };
   
   const productVariants = {
-    initial: (direction) => ({
+    initial: (direction: number) => ({
       x: direction > 0 ? "-100%" : "100%",
     }),
     animate: {
@@ -73,7 +73,7 @@ const Hero = () => {
         ease: 'easeInOut',
       }
     },
-    exit: (direction) => ({
+    exit: (direction: number) => ({
       x: direction > 0 ? "100%" : "-100%",
       transition: {
         duration: 0.8,
