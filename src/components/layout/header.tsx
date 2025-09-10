@@ -241,7 +241,7 @@ const Header = () => {
             )}
           >
             <Heart className='h-6 w-6' />
-            {wishlist.size > 0 && (
+            {hasMounted && wishlist.size > 0 && (
               <span className='absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-xs text-white dark:bg-slate-50 dark:text-slate-900'>
                 {wishlist.size}
               </span>
@@ -258,7 +258,7 @@ const Header = () => {
             )}
           >
             <ShoppingCart className='h-6 w-6' />
-            {cartItemCount > 0 && (
+            {hasMounted && cartItemCount > 0 && (
               <span className='absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-xs text-white dark:bg-slate-50 dark:text-slate-900'>
                 {cartItemCount}
               </span>

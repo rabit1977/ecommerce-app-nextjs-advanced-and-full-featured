@@ -27,11 +27,18 @@ export interface ProductVariant {
 }
 
 export interface Review {
-  id: number;
+  id: string;
   name: string;
   rating: number;
   comment: string;
   helpful: number;
+  date: string;
+}
+export interface ReviewPayload {
+  id?: string;
+  name: string;
+  rating: number;
+  comment: string;
 }
 
 export interface AddReviewFormProps {
@@ -41,6 +48,7 @@ export interface AddReviewFormProps {
 }
 
 export interface User {
+  id: string;
   name: string;
   email: string;
   password: string;
@@ -88,7 +96,7 @@ export interface PaymentInfo {
 
 export interface AppState {
   user: User | null;
-  users: User[]; // Add this line
+  users: User[]; 
   cart: CartItem[];
   wishlist: Set<string>;
   orders: Order[];
@@ -108,6 +116,31 @@ export interface AppContextType extends AppState {
   setPage: (page: string) => void;
   viewProduct: (productId: string) => void;
   viewOrder: (orderId: string) => void;
+  login: (
+    email: string,
+    password: string
+  ) => { success: boolean; message?: string };
+  logout: () => void;
+  signup: (
+    name: string,
+    email: string,
+    password: string
+  ) => { success: boolean; message?: string };
+  addToCart: (item: Omit<CartItem, 'cartItemId' | 'image'>) => void;
+  updateCartQuantity: (cartItemId: string, newQuantity: number) => void;
+  removeFromCart: (cartItemId: string) => void;
+  saveForLater: (cartItemId: string) => void;
+  moveToCart: (cartItemId: string) => void;
+  removeFromSaved: (cartItemId: string) => void;
+  toggleWishlist: (productId: string) => void;
+  placeOrder: (orderDetails: Omit<Order, 'id' | 'date'>) => string;
+  addReview: (productId: string, review: ReviewPayload) => void;
+  updateReviewHelpfulCount: (productId: string, reviewId: string) => void;
+  showToast: (message: string) => void;
+  setSearchQuery: (query: string) => void;
+  setTheme: (theme: 'light' | 'dark') => void;
+  setIsMenuOpen: (isOpen: boolean) => void;
+  setQuickViewProductId: (productId: string | null) => void;
   
   // ... (rest of the existing functions)
 }

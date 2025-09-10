@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { Stars } from '@/components/ui/stars';
-import { useApp } from '@/lib/context/app-context';
 import { Product } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { priceFmt } from '@/lib/utils/formatters';
@@ -11,6 +10,7 @@ import { Eye, Heart } from 'lucide-react';
 import Link from 'next/link';
 import React, { useCallback, useMemo, useTransition } from 'react';
 import { ProductImageCarousel } from './product-image-carousel';
+import { useApp } from '@/lib/context/app-context';
 
 interface ProductCardProps {
   product: Product;
@@ -23,7 +23,7 @@ const ProductCard = React.memo(({ product }: ProductCardProps) => {
 
   // The source of truth is the client-side wishlist Set from your context
   const isWished = useMemo(
-    () => wishlist.has(product.id),
+    () => wishlist?.has(product.id) ?? false,
     [wishlist, product.id]
   );
   const isOutOfStock = useMemo(() => product.stock === 0, [product.stock]);
