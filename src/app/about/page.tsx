@@ -85,7 +85,7 @@ const AboutPage = () => {
           <h2 className='text-3xl font-bold tracking-tight text-slate-900 dark:text-white text-center'>
             Our Team
           </h2>
-          <div className='mt-8 grid md:grid-cols-4 gap-8'>
+          <div className='mt-8 grid sm:grid-cols-2 md:grid-cols-4 gap-8'>
             {aboutContent.team.map((member, index) => (
               <div key={index} className='text-center'>
                 <div className='w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-lg dark:border-slate-800'>

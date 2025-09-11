@@ -47,6 +47,9 @@ const QuickViewModal = () => {
 
   useEffect(() => {
     if (product) {
+      setQuantity(1);
+      setAdding(false);
+      setAdded(false);
       const initialOptions = product.options?.reduce(
         (acc, opt) => ({
           ...acc,
