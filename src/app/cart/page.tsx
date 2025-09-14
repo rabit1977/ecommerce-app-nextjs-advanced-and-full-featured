@@ -6,10 +6,11 @@ import { useApp } from '@/lib/context/app-context';
 import { Button } from '@/components/ui/button';
 import { CartItem } from '@/components/cart/cart-item';
 import { CartSummary } from '@/components/cart/cart-summary';
+import { SavedItem } from '@/components/cart/saved-item';
 import { useRouter } from 'next/navigation';
 
 const CartPage = () => {
-  const { cart } = useApp();
+  const { cart, savedForLater } = useApp();
   // console.log('Cart items:', cart);
   const router = useRouter();
   
@@ -52,6 +53,16 @@ const CartPage = () => {
                 <CartItem key={item.cartItemId} item={item} />
               ))}
             </ul>
+            {savedForLater.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-2xl font-bold tracking-tight dark:text-white">Saved for Later</h2>
+                <ul role="list" className="divide-y divide-slate-200 border-y border-slate-200 dark:divide-slate-800 dark:border-slate-800 mt-4">
+                  {savedForLater.map((item) => (
+                    <SavedItem key={item.cartItemId} item={item} />
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           
           <div className="w-full lg:w-1/3">
