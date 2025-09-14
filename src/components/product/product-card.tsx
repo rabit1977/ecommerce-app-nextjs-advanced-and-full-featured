@@ -44,10 +44,10 @@ const ProductCard = React.memo(({ product }: ProductCardProps) => {
   return (
     <motion.div
       layoutId={`product-card-${product.id}`}
-      whileHover={{ y: -5 }}
+      // whileHover={{ y: -5 }}
       className='w-full'
     >
-      <div className='group relative w-full overflow-hidden rounded-2xl border bg-white shadow-md transition-shadow hover:shadow-xl dark:border-slate-800 dark:bg-slate-900'>
+      <div className='group relative w-full overflow-hidden rounded-2xl border bg-white shadow-md transition-shadow hover:shadow-xl dark:border-slate-800 dark:bg-slate-900 '>
         <ProductImageCarousel product={product} />
 
         {isOutOfStock && (
@@ -58,7 +58,7 @@ const ProductCard = React.memo(({ product }: ProductCardProps) => {
           </div>
         )}
 
-        <div className='absolute right-2 top-2 flex gap-2'>
+        <div className='absolute right-2 top-2 flex gap-2 '>
           <Button
             size='icon'
             variant='secondary'
@@ -76,7 +76,8 @@ const ProductCard = React.memo(({ product }: ProductCardProps) => {
             disabled={isPending} // Disable the button while the transition is pending
             aria-label={isWished ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            <Heart className={cn('h-4 w-4', isWished && 'fill-white')} />
+            <Heart className={`h-4 w-4 ${isWished ? 'fill-red-500 stroke-0' : ''}`} />
+
           </Button>
         </div>
 

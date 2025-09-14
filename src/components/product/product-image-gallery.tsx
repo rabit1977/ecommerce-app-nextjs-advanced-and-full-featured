@@ -42,18 +42,18 @@ export function ProductImageGallery({
 
   return (
     <motion.div layoutId={`product-card-${product.id}`}>
-      <div className="h-80 w-full overflow-hidden rounded-xl border dark:border-slate-800 sm:h-[400px]">
+      <div className="h-80 w-full overflow-hidden rounded-xl border dark:border-slate-800 sm:h-[400px] ">
         <Image
           src={activeImage}
           alt={product.title}
           width={500}
           height={400}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover "
           priority // Prioritize loading the main product image
         />
       </div>
       {thumbnailVariants.length > 0 && (
-        <div className="mt-4 grid grid-cols-4 gap-4">
+        <div className="mt-4 grid grid-cols-4 gap-4 ">
           {thumbnailVariants.map((variant) => (
             <button
               key={variant.value}

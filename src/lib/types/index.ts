@@ -152,3 +152,10 @@ export const getProductImages = (product: Product): string[] => {
   }
   return product.images.filter(img => img && img !== '');
 };
+
+export interface UsePaginationProps {
+  totalCount: number;
+  pageSize: number;
+  siblingCount?: number;
+  currentPage: number;
+}
