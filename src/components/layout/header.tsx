@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
-import { useDebounce } from '@/lib/hooks/useDebounce';
 import { cn } from '@/lib/utils'; // 2. Import the 'cn' utility
 import {
   Heart,
@@ -27,6 +26,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import React, {
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -50,17 +50,17 @@ const Header = () => {
   const pathname = usePathname();
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
-  const debouncedSearchQuery = useDebounce(inputValue, 300);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const deferredQuery = useDeferredValue(inputValue);
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
   useEffect(() => {
-    setSearchQuery(debouncedSearchQuery);
-  }, [debouncedSearchQuery, setSearchQuery]);
+    setSearchQuery(deferredQuery);
+  }, [deferredQuery, setSearchQuery]);
 
   useEffect(() => {
     if (!pathname.startsWith('/products')) {
@@ -73,8 +73,8 @@ const Header = () => {
   }, [cart]);
 
   const searchResults = useMemo(() => {
-    if (!debouncedSearchQuery) return [];
-    const query = debouncedSearchQuery.toLowerCase();
+    if (!deferredQuery) return [];
+    const query = deferredQuery.toLowerCase();
     return products
       .filter(
         (p) =>
@@ -83,7 +83,7 @@ const Header = () => {
           p.category.toLowerCase().includes(query)
       )
       .slice(0, 5);
-  }, [debouncedSearchQuery, products]);
+  }, [deferredQuery, products]);
 
   const navigateToSearchResults = useCallback(() => {
     if (inputValue) {
@@ -270,12 +270,9 @@ const Header = () => {
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      className='flex items-center gap-2'
-                    >
+                    <Button variant='ghost' className='flex items-center gap-2'>
                       <span className='hidden sm:inline text-sm font-medium'>
-                        Hi, {user.name.split(' ')[0]}
+                        Hi, {user.name.split(' ')[1]}
                       </span>
                       <User className='h-6 w-6' />
                     </Button>

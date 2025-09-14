@@ -18,7 +18,7 @@ const WishlistPage = () => {
     () => products.filter((p) => wishlist.has(p.id)),
     [wishlist, products]
   );
-    const viewProduct = (productId: string) => {
+  const viewProduct = (productId: string) => {
     router.push(`/products/${productId}`);
   };
 
@@ -77,20 +77,22 @@ const WishlistPage = () => {
                   src={getProductImage(product)}
                   alt={product.title}
                   fill
-                  className='object-cover'
+                  className='object-cover hover:scale-110 transition-transform duration-300'
                   sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
                 />
               </div>
               <div className='p-4 flex flex-col flex-grow'>
                 <h3 className='font-semibold text-slate-800 dark:text-white'>
-                   <Link 
-                href="#" 
-                onClick={(e) => { e.preventDefault(); viewProduct(product.id); }}
-                className="hover:underline cursor-pointer"
-              >
-                {product.title}
-              </Link>
-                  
+                  <Link
+                    href='#'
+                    onClick={(e) => {
+                      e.preventDefault();
+                      viewProduct(product.id);
+                    }}
+                    className='hover:underline hover:underline-offset-3   cursor-pointer'
+                  >
+                    {product.title}
+                  </Link>
                 </h3>
                 <p className='text-slate-500 text-sm dark:text-slate-400'>
                   {product.brand}

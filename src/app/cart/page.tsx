@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 
 const CartPage = () => {
   const { cart } = useApp();
-  console.log('Cart items:', cart);
+  // console.log('Cart items:', cart);
   const router = useRouter();
   
   const subtotal = useMemo(() => 
@@ -45,7 +45,7 @@ const CartPage = () => {
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold tracking-tight dark:text-white">Your Cart</h1>
         
-        <div className="mt-8 flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start mt-8">
           <div className="w-full lg:w-2/3">
             <ul role="list" className="divide-y divide-slate-200 border-y border-slate-200 dark:divide-slate-800 dark:border-slate-800">
               {cart.map((item) => (
