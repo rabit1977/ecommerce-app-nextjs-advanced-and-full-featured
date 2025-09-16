@@ -1,6 +1,6 @@
 'use client';
 
-import { Product } from '@/lib/types';
+import { Product, ProductImageCarouselProps } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
@@ -8,9 +8,7 @@ import Link from 'next/link';
 import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 
-interface ProductImageCarouselProps {
-  product: Product;
-}
+
 
 export function ProductImageCarousel({ product }: ProductImageCarouselProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -51,7 +49,7 @@ export function ProductImageCarousel({ product }: ProductImageCarouselProps) {
           </div>
           <div className='absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5'>
             {displayImages.map((_, index) => (
-              <button key={index} onClick={() => setActiveImageIndex(index)} aria-label={`Go to image ${index + 1}`} className={cn('h-1.5 w-1.5 rounded-full transition-all duration-300', activeImageIndex === index ? 'scale-125 bg-white ring-1 ring-slate-500' : 'bg-white/60')} />
+              <button key={index} onClick={() => setActiveImageIndex(index)} aria-label={`Go to image ${index + 1}`} className={`h-1.5 w-1.5 rounded-full transition-all duration-300', ${activeImageIndex === index ? 'scale-125 bg-white ring-1 ring-slate-500' : 'bg-white/60'}`} />
             ))}
           </div>
         </>

@@ -159,3 +159,17 @@ export interface UsePaginationProps {
   siblingCount?: number;
   currentPage: number;
 }
+
+export interface ProductImageCarouselProps {
+  product: Product;
+}
+
+export interface ProductImageGalleryProps {
+  product: Product;
+  selectedOptions: Record<string, string>;
+  onOptionChange: (optionName: string, value: string) => void;
+}
+
+export interface RelatedProductsProps {
+  currentProduct: Product;
+}

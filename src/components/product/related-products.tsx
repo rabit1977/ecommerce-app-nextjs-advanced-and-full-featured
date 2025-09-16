@@ -2,12 +2,8 @@
 
 import { ProductCard } from '@/components/product/product-card';
 import { useApp } from '@/lib/context/app-context';
-import { Product } from '@/lib/types';
+import { RelatedProductsProps } from '@/lib/types';
 import { useMemo } from 'react';
-
-interface RelatedProductsProps {
-  currentProduct: Product;
-}
 
 const RelatedProducts = ({ currentProduct }: RelatedProductsProps) => {
   const { products } = useApp();
@@ -28,7 +24,7 @@ const RelatedProducts = ({ currentProduct }: RelatedProductsProps) => {
       <h2 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-white'>
         You Might Also Like
       </h2>
-      <div className='mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4'>
+      <div className='mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
         {related.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
