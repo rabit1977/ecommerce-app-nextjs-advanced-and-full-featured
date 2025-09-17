@@ -3,12 +3,16 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle } from 'lucide-react';
-import { useApp } from '@/lib/context/app-context';
+import { login, signup } from '@/lib/store/thunks/authThunks';
+import { showToast } from '@/lib/store/thunks/uiThunks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAppDispatch } from '@/lib/store/hooks';
+import { useRouter } from 'next/navigation';
 
 const AuthForm = () => {
-  const { login, signup, showToast } = useApp();
+  const dispatch = useAppDispatch();
+  const router = useRouter();
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -49,10 +53,14 @@ const AuthForm = () => {
     
     if (validate()) {
       if (mode === 'login') {
-        const result = login(formData.email, formData.password);
-        if (!result.success) setServerError(result.message || 'Login failed');
+        const result = dispatch(login(formData.email, formData.password));
+        if (!result.success) {
+          setServerError(result.message || 'Login failed');
+        } else {
+          router.push('/');
+        }
       } else if (mode === 'signup') {
-        const result = signup(formData.name, formData.email, formData.password);
+        const result = dispatch(signup(formData.name, formData.email, formData.password));
         if (!result.success) {
           setServerError(result.message || 'Signup failed');
         } else {
@@ -60,7 +68,7 @@ const AuthForm = () => {
           setFormData(prev => ({ ...prev, name: '', password: '', confirmPassword: '' }));
         }
       } else {
-        showToast(`If an account exists for ${formData.email}, a reset link has been sent.`);
+        dispatch(showToast(`If an account exists for ${formData.email}, a reset link has been sent.`, 'info'));
         setMode('login');
       }
     }

@@ -2,15 +2,15 @@
 
 import { Button } from '@/components/ui/button';
 import { Stars } from '@/components/ui/stars';
+import { useCart } from '@/lib/hooks/useCart';
+import { useUI } from '@/lib/hooks/useUI';
 import { Product } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { priceFmt } from '@/lib/utils/formatters';
 import { motion } from 'framer-motion';
 import { Eye, Heart } from 'lucide-react';
 import Link from 'next/link';
 import React, { useCallback, useMemo, useTransition } from 'react';
 import { ProductImageCarousel } from './product-image-carousel';
-import { useApp } from '@/lib/context/app-context';
 
 interface ProductCardProps {
   product: Product;
@@ -18,13 +18,14 @@ interface ProductCardProps {
 
 const ProductCard = React.memo(({ product }: ProductCardProps) => {
   // We now get the wishlist and toggle function directly from your client-side context
-  const { setQuickViewProductId, wishlist, toggleWishlist } = useApp();
+  const { setQuickViewProductId } = useUI();
+  const { wishlistItems, toggleWishlist } = useCart();
   const [isPending, startTransition] = useTransition();
 
   // The source of truth is the client-side wishlist Set from your context
   const isWished = useMemo(
-    () => wishlist?.has(product.id) ?? false,
-    [wishlist, product.id]
+    () => wishlistItems.includes(product.id),
+    [wishlistItems, product.id]
   );
   const isOutOfStock = useMemo(() => product.stock === 0, [product.stock]);
 
@@ -76,8 +77,9 @@ const ProductCard = React.memo(({ product }: ProductCardProps) => {
             disabled={isPending} // Disable the button while the transition is pending
             aria-label={isWished ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            <Heart className={`h-4 w-4 ${isWished ? 'fill-red-500 stroke-0' : ''}`} />
-
+            <Heart
+              className={`h-4 w-4 ${isWished ? 'fill-red-500 stroke-0' : ''}`}
+            />
           </Button>
         </div>
 

@@ -1,7 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useApp } from '@/lib/context/app-context';
+import { useAppDispatch } from '@/lib/store/hooks';
+import { moveToCart, removeFromSaved } from '@/lib/store/thunks/cartThunks';
 import { CartItem as CartItemType } from '@/lib/types';
 import { priceFmt } from '@/lib/utils/formatters';
 import { Trash2 } from 'lucide-react';
@@ -14,15 +15,15 @@ interface SavedItemProps {
 }
 
 const SavedItem = React.memo(({ item }: SavedItemProps) => {
-  const { moveToCart, removeFromSaved } = useApp();
+  const dispatch = useAppDispatch();
 
   const handleMoveToCart = useCallback(() => {
-    moveToCart(item.cartItemId);
-  }, [item.cartItemId, moveToCart]);
+    dispatch(moveToCart(item.cartItemId));
+  }, [item.cartItemId, dispatch]);
 
   const handleRemove = useCallback(() => {
-    removeFromSaved(item.cartItemId);
-  }, [item.cartItemId, removeFromSaved]);
+    dispatch(removeFromSaved(item.cartItemId));
+  }, [item.cartItemId, dispatch]);
 
   return (
     <li className="flex flex-col py-6 sm:flex-row">

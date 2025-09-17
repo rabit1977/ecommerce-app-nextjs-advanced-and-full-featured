@@ -21,8 +21,7 @@ const CartDebug = () => {
   };
 
   const clearCart = () => {
-    localStorage.setItem('cart', '[]');
-    window.location.reload();
+    dispatch(clearCartAction());
   };
 
   return (

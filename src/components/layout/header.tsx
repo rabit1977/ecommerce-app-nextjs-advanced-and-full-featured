@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, buttonVariants } from '@/components/ui/button'; // 1. Import buttonVariants
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,8 +8,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { useApp } from '@/lib/context/app-context';
-import { cn } from '@/lib/utils'; // 2. Import the 'cn' utility
+import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
+import { logout } from '@/lib/store/thunks/authThunks';
+import { setTheme, setSearchQuery, setIsMenuOpen } from '@/lib/store/slices/uiSlice';
+import { cn } from '@/lib/utils';
 import {
   Heart,
   Menu,
@@ -34,18 +36,13 @@ import React, {
 } from 'react';
 
 const Header = () => {
-  // ... (all your existing hooks and functions remain the same)
-  const {
-    user,
-    cart,
-    wishlist,
-    logout,
-    products,
-    setSearchQuery,
-    theme,
-    setTheme,
-    setIsMenuOpen,
-  } = useApp();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.user);
+  const { products } = useAppSelector((state) => state.products);
+  const { cart } = useAppSelector((state) => state.cart);
+  const { itemIds: wishlist } = useAppSelector((state) => state.wishlist);
+  const { theme } = useAppSelector((state) => state.ui);
+
   const router = useRouter();
   const pathname = usePathname();
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -59,8 +56,8 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    setSearchQuery(deferredQuery);
-  }, [deferredQuery, setSearchQuery]);
+    dispatch(setSearchQuery(deferredQuery));
+  }, [deferredQuery, dispatch]);
 
   useEffect(() => {
     if (!pathname.startsWith('/products')) {
@@ -107,6 +104,10 @@ const Header = () => {
         firstResult.focus();
       }
     }
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
   };
 
   return (
@@ -224,7 +225,7 @@ const Header = () => {
           <Button
             variant='ghost'
             size='icon'
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            onClick={() => dispatch(setTheme(theme === 'light' ? 'dark' : 'light'))}
             aria-label='Toggle theme'
           >
             <Sun className='h-6 w-6 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0' />
@@ -241,9 +242,9 @@ const Header = () => {
             )}
           >
             <Heart className='h-6 w-6' />
-            {hasMounted && wishlist.size > 0 && (
+            {hasMounted && wishlist?.length > 0 && (
               <span className='absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-xs text-white dark:bg-slate-50 dark:text-slate-900'>
-                {wishlist.size}
+                {wishlist.length}
               </span>
             )}
           </Link>
@@ -281,7 +282,7 @@ const Header = () => {
                     <DropdownMenuItem asChild>
                       <Link href='/account'>My Account</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
@@ -299,7 +300,7 @@ const Header = () => {
             <Button
               variant='ghost'
               size='icon'
-              onClick={() => setIsMenuOpen(true)}
+              onClick={() => dispatch(setIsMenuOpen(true))}
               aria-label='Open menu'
             >
               <Menu className='h-6 w-6' />

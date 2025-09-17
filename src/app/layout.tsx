@@ -5,10 +5,11 @@ import { Header } from '@/components/layout/header';
 import { MobileSidebar } from '@/components/layout/mobile-sidebar';
 import { QuickViewModal } from '@/components/product/quick-view-modal';
 import { Toast } from '@/components/toast';
-import { AppProvider } from '@/lib/context/app-context';
+import { ReduxProvider } from '@/lib/providers/ReduxProvider';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { ThemeManager } from '@/components/layout/theme-manager';
 // import { ProductsLoader } from '@/components/products/products-loader';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -28,10 +29,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang='en' className='dark'>
+    <html lang='en'>
       <body className={inter.className}>
         <ErrorBoundary>
-          <AppProvider>
+          <ReduxProvider>
+            <ThemeManager />
             {/* <ProductsLoader /> */}
             <div className='min-h-screen bg-white font-sans text-slate-800 dark:bg-slate-950 dark:text-slate-200'>
               <Header />
@@ -42,7 +44,7 @@ export default function RootLayout({
               <Toast />
             </div>
             {/* {process.env.NODE_ENV === 'development' && <CartDebug />} */}
-          </AppProvider>
+          </ReduxProvider>
         </ErrorBoundary>
       </body>
     </html>

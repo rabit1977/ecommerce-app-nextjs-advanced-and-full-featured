@@ -1,12 +1,12 @@
 'use client';
 
 import { ProductCard } from '@/components/product/product-card';
-import { useApp } from '@/lib/context/app-context';
+import { useProducts } from '@/lib/hooks/useProducts';
 import { RelatedProductsProps } from '@/lib/types';
 import { useMemo } from 'react';
 
 const RelatedProducts = ({ currentProduct }: RelatedProductsProps) => {
-  const { products } = useApp();
+  const { products } = useProducts();
 
   const related = useMemo(() => {
     return products

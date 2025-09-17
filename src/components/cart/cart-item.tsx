@@ -1,7 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useApp } from '@/lib/context/app-context';
+import { useAppDispatch } from '@/lib/store/hooks';
+import { updateCartQuantity, removeFromCart, saveForLater } from '@/lib/store/thunks/cartThunks';
 import { CartItem as CartItemType } from '@/lib/types';
 import { priceFmt } from '@/lib/utils/formatters';
 import { Minus, Plus, Trash2 } from 'lucide-react';
@@ -40,24 +41,24 @@ interface CartItemProps {
 
 // --- Main CartItem Component wrapped in React.memo ---
 const CartItem = React.memo(({ item }: CartItemProps) => {
-  const { updateCartQuantity, removeFromCart, saveForLater } = useApp();
+  const dispatch = useAppDispatch();
 
   // --- Stabilized Event Handlers with useCallback ---
   const handleQuantityDecrease = useCallback(() => {
-    updateCartQuantity(item.cartItemId, item.quantity - 1);
-  }, [item.cartItemId, item.quantity, updateCartQuantity]);
+    dispatch(updateCartQuantity(item.cartItemId, item.quantity - 1));
+  }, [item.cartItemId, item.quantity, dispatch]);
 
   const handleQuantityIncrease = useCallback(() => {
-    updateCartQuantity(item.cartItemId, item.quantity + 1);
-  }, [item.cartItemId, item.quantity, updateCartQuantity]);
+    dispatch(updateCartQuantity(item.cartItemId, item.quantity + 1));
+  }, [item.cartItemId, item.quantity, dispatch]);
 
   const handleSaveForLater = useCallback(() => {
-    saveForLater(item.cartItemId);
-  }, [item.cartItemId, saveForLater]);
+    dispatch(saveForLater(item.cartItemId));
+  }, [item.cartItemId, dispatch]);
 
   const handleRemove = useCallback(() => {
-    removeFromCart(item.cartItemId);
-  }, [item.cartItemId, removeFromCart]);
+    dispatch(removeFromCart(item.cartItemId));
+  }, [item.cartItemId, dispatch]);
 
   return (
     <li className="flex flex-col py-6 sm:flex-row">

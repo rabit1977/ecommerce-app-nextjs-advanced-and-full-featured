@@ -1,54 +1,65 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useApp } from '@/lib/context/app-context';
-import { AddReviewFormProps } from '@/lib/types';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useProducts } from '@/lib/hooks/useProducts';
+import { Review } from '@/lib/types';
 import { Star } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+
+interface AddReviewFormProps {
+  productId: string;
+  reviewToEdit?: Review | null;
+  onCancelEdit: () => void;
+}
 
 const AddReviewForm = ({
   productId,
   reviewToEdit,
   onCancelEdit,
 }: AddReviewFormProps) => {
-  const { user, addReview } = useApp();
+  const { user } = useAuth();
+  const { addReview } = useProducts();
   const [rating, setRating] = useState(reviewToEdit?.rating || 0);
+  const [title, setTitle] = useState(reviewToEdit?.title || '');
   const [comment, setComment] = useState(reviewToEdit?.comment || '');
-  const inputRef = useRef<HTMLTextAreaElement>(null); // NEW: Create a ref for the textarea
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Effect to reset form or set initial values when a new review is selected for editing
   useEffect(() => {
     if (reviewToEdit) {
       setRating(reviewToEdit.rating);
+      setTitle(reviewToEdit.title);
       setComment(reviewToEdit.comment);
-      // NEW: Automatically focus the textarea when entering edit mode
       if (inputRef.current) {
         inputRef.current.focus();
       }
     } else {
       setRating(0);
+      setTitle('');
       setComment('');
     }
   }, [reviewToEdit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || rating === 0 || comment.trim() === '') {
+    if (!user || rating === 0 || title.trim() === '' || comment.trim() === '') {
       return;
     }
 
     addReview(productId, {
-      id: reviewToEdit?.id, 
-      name: user.name,
+      id: reviewToEdit?.id,
+      author: user.name,
       rating,
+      title,
       comment,
     });
 
-    // Reset form after submission
     setRating(0);
+    setTitle('');
     setComment('');
-    onCancelEdit(); // Exit edit mode
+    onCancelEdit();
   };
 
   return (
@@ -56,31 +67,40 @@ const AddReviewForm = ({
       <h3 className='text-lg font-semibold dark:text-white'>
         {reviewToEdit ? 'Edit Your Review' : 'Write a Review'}
       </h3>
-      <form onSubmit={handleSubmit} className='mt-4'>
-        <div className='flex items-center gap-1'>
-          {[1, 2, 3, 4, 5].map((starValue) => (
-            <Star
-              key={starValue}
-              className={`h-6 w-6 cursor-pointer ${
-                starValue <= rating
-                  ? 'text-yellow-400'
-                  : 'text-slate-300 dark:text-slate-600'
-              }`}
-              onClick={() => setRating(starValue)}
-            />
-          ))}
+      <form onSubmit={handleSubmit} className='mt-4 space-y-4'>
+        <div>
+          <p className="mb-2 font-medium dark:text-slate-300">Your Rating</p>
+          <div className='flex items-center gap-1'>
+            {[1, 2, 3, 4, 5].map((starValue) => (
+              <Star
+                key={starValue}
+                className={`h-6 w-6 cursor-pointer ${ 
+                  starValue <= rating
+                    ? 'text-yellow-400 fill-yellow-400'
+                    : 'text-slate-300 dark:text-slate-600'
+                }`}
+                onClick={() => setRating(starValue)}
+              />
+            ))}
+          </div>
         </div>
+        <Input
+          ref={inputRef}
+          placeholder={'Review Title (e.g., "Great product!")'}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className='bg-white dark:bg-slate-900 dark:text-white'
+        />
         <Textarea
-          ref={inputRef} // NEW: Attach the ref to the Textarea
           placeholder='Share your thoughts on this product...'
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          className='mt-4 min-h-[100px] bg-white dark:bg-slate-900 dark:text-white'
+          className='min-h-[100px] bg-white dark:bg-slate-900 dark:text-white'
         />
-        <div className='mt-4 flex gap-2'>
+        <div className='flex gap-2'>
           <Button
             type='submit'
-            disabled={rating === 0 || comment.trim() === ''}
+            disabled={rating === 0 || title.trim() === '' || comment.trim() === ''}
           >
             {reviewToEdit ? 'Update Review' : 'Submit Review'}
           </Button>

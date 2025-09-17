@@ -4,21 +4,23 @@ import React from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronLeft, Package, Truck, CheckCircle } from 'lucide-react';
-import { useApp } from '@/lib/context/app-context';
+import { useAppSelector } from '@/lib/store/hooks';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { priceFmt } from '@/lib/utils/formatters';
 
 const OrderDetailPage = () => {
   const params = useParams();
-  const { orders, setPage, viewProduct } = useApp();
-  const order = orders.find(o => o.id === params.id);
+  const router = useRouter();
+  const { orders } = useAppSelector((state: any) => state.orders);
+  const order = orders.find((o: any) => o.id === params.id);
 
   if (!order) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <Package className="mx-auto h-24 w-24 text-slate-300 dark:text-slate-700" />
         <h2 className="mt-6 text-2xl font-bold dark:text-white">Order not found</h2>
-        <Button onClick={() => setPage('account')} className="mt-8">
+        <Button onClick={() => router.push('/account')} className="mt-8">
           Back to Account
         </Button>
       </div>
@@ -35,7 +37,7 @@ const OrderDetailPage = () => {
   return (
     <div className="bg-slate-50 min-h-[70vh] dark:bg-slate-900">
       <div className="container mx-auto px-4 py-12">
-        <Button variant="ghost" onClick={() => setPage('account')} className="mb-6">
+        <Button variant="ghost" onClick={() => router.push('/account')} className="mb-6">
           <ChevronLeft className="h-4 w-4 mr-2" />Back to Orders
         </Button>
 
@@ -108,7 +110,7 @@ const OrderDetailPage = () => {
                       <h3 className="font-medium text-slate-900 dark:text-white">
                         <a 
                           href="#" 
-                          onClick={(e) => { e.preventDefault(); viewProduct(item.id); }}
+                          onClick={(e) => { e.preventDefault(); router.push(`/products/${item.id}`); }}
                           className="hover:underline"
                         >
                           {item.title}
@@ -166,11 +168,11 @@ const OrderDetailPage = () => {
               <h3 className="text-lg font-semibold dark:text-white mb-4">Shipping Information</h3>
               <div className="space-y-2 text-sm">
                 <p className="font-medium dark:text-white">
-                  {order.shippingInfo.firstName} {order.shippingInfo.lastName}
+                  {order.shippingAddress.name}
                 </p>
-                <p className="text-slate-600 dark:text-slate-300">{order.shippingInfo.address}</p>
+                <p className="text-slate-600 dark:text-slate-300">{order.shippingAddress.street}</p>
                 <p className="text-slate-600 dark:text-slate-300">
-                  {order.shippingInfo.city}, {order.shippingInfo.state} {order.shippingInfo.zip}
+                  {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}
                 </p>
                 <p className="mt-4">
                   <span className="font-medium dark:text-white">Shipping Method: </span>

@@ -1,15 +1,14 @@
-
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { CartItem } from './cart-item';
-import { useApp } from '@/lib/context/app-context';
+import * as hooks from '@/lib/store/hooks';
+import { updateCartQuantity, removeFromCart, saveForLater } from '@/lib/store/slices/cartSlice';
 import { CartItem as CartItemType } from '@/lib/types';
 
-// Mock the useApp hook
-jest.mock('@/lib/context/app-context', () => ({
-  useApp: jest.fn(),
-}));
+// Mock the Redux hooks
+const mockDispatch = jest.fn();
+jest.spyOn(hooks, 'useAppDispatch').mockReturnValue(mockDispatch);
 
 // Mock Next.js components
 jest.mock('next/image', () => ({
@@ -30,24 +29,12 @@ const mockItem: CartItemType = {
   quantity: 2,
   image: '/test-image.jpg',
   options: {
-    color: '#ff0000',
-    size: 'M',
+    Color: '#ff0000',
+    Size: 'M',
   },
 };
 
 describe('CartItem', () => {
-  const mockUpdateCartQuantity = jest.fn();
-  const mockRemoveFromCart = jest.fn();
-  const mockSaveForLater = jest.fn();
-
-  beforeEach(() => {
-    (useApp as jest.Mock).mockReturnValue({
-      updateCartQuantity: mockUpdateCartQuantity,
-      removeFromCart: mockRemoveFromCart,
-      saveForLater: mockSaveForLater,
-    });
-  });
-
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -59,32 +46,32 @@ describe('CartItem', () => {
     expect(screen.getByText(/200/)).toBeInTheDocument(); // price * quantity
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByAltText('Test Product')).toHaveAttribute('src', '/test-image.jpg');
-    expect(screen.getByText('color:')).toBeInTheDocument();
-    expect(screen.getByText('size: M')).toBeInTheDocument();
+    expect(screen.getByText(/Color:/)).toBeInTheDocument();
+    expect(screen.getByText(/Size: M/)).toBeInTheDocument();
   });
 
   it('calls updateCartQuantity when quantity buttons are clicked', () => {
     render(<CartItem item={mockItem} />);
 
     fireEvent.click(screen.getByLabelText('Decrease quantity'));
-    expect(mockUpdateCartQuantity).toHaveBeenCalledWith('1', 1);
+    expect(mockDispatch).toHaveBeenCalledWith(updateCartQuantity({ cartItemId: '1', newQuantity: 1 }));
 
     fireEvent.click(screen.getByLabelText('Increase quantity'));
-    expect(mockUpdateCartQuantity).toHaveBeenCalledWith('1', 3);
+    expect(mockDispatch).toHaveBeenCalledWith(updateCartQuantity({ cartItemId: '1', newQuantity: 3 }));
   });
 
   it('calls saveForLater when "Save for Later" is clicked', () => {
     render(<CartItem item={mockItem} />);
 
     fireEvent.click(screen.getByText('Save for Later'));
-    expect(mockSaveForLater).toHaveBeenCalledWith('1');
+    expect(mockDispatch).toHaveBeenCalledWith(saveForLater('1'));
   });
 
   it('calls removeFromCart when "Remove" is clicked', () => {
     render(<CartItem item={mockItem} />);
 
     fireEvent.click(screen.getByText('Remove'));
-    expect(mockRemoveFromCart).toHaveBeenCalledWith('1');
+    expect(mockDispatch).toHaveBeenCalledWith(removeFromCart('1'));
   });
 
   describe('OptionDisplay', () => {
@@ -97,7 +84,7 @@ describe('CartItem', () => {
 
     it('renders text for a non-color option', () => {
       render(<CartItem item={mockItem} />);
-      expect(screen.getByText('size: M')).toBeInTheDocument();
+      expect(screen.getByText(/Size: M/)).toBeInTheDocument();
     });
   });
 });

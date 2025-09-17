@@ -1,15 +1,15 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useApp } from '@/lib/context/app-context';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
 import { ProductImageGallery } from '@/components/product/product-image-gallery';
 import { ProductPurchasePanel } from '@/components/product/product-purchase-panel';
-import { ReviewsSection } from '@/components/product/reviews-section';
 import { RelatedProducts } from '@/components/product/related-products';
-import { useState, useCallback, useMemo } from 'react';
+import { ReviewsSection } from '@/components/product/reviews-section';
+import { Button } from '@/components/ui/button';
+import { useProducts } from '@/lib/hooks/useProducts';
 import { Product } from '@/lib/types';
+import { ChevronLeft } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { useCallback, useMemo, useState } from 'react';
 
 // Helper function to initialize state safely
 const getDefaultOptions = (product: Product | undefined) => {
@@ -26,12 +26,17 @@ const getDefaultOptions = (product: Product | undefined) => {
 const ProductDetailPage = () => {
   const params = useParams();
   const router = useRouter();
-  const { products } = useApp();
-  const product = useMemo(() => products.find((p) => p.id === params.id), [products, params.id]);
+  const { products } = useProducts();
+  const product = useMemo(
+    () => products.find((p) => p.id === params.id),
+    [products, params.id]
+  );
 
   // --- LIFTED STATE ---
   // The parent page now owns the state for selected options
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => getDefaultOptions(product));
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, string>
+  >(() => getDefaultOptions(product));
 
   // It also owns the function to update the state
   const handleOptionChange = useCallback(
@@ -43,9 +48,9 @@ const ProductDetailPage = () => {
 
   if (!product) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <p className="text-lg">Product not found.</p>
-        <Button variant="link" onClick={() => router.push('/products')}>
+      <div className='container mx-auto px-4 py-16 text-center'>
+        <p className='text-lg'>Product not found.</p>
+        <Button variant='link' onClick={() => router.push('/products')}>
           Go back to all products
         </Button>
       </div>
@@ -53,18 +58,18 @@ const ProductDetailPage = () => {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-950">
-      <div className="container mx-auto px-4 py-12">
+    <div className='bg-white dark:bg-slate-950'>
+      <div className='container mx-auto px-4 py-12'>
         <Button
-          variant="ghost"
+          variant='ghost'
           onClick={() => router.push('/products')}
-          className="mb-6"
+          className='mb-6'
         >
-          <ChevronLeft className="mr-2 h-4 w-4" />
+          <ChevronLeft className='mr-2 h-4 w-4' />
           Back to Products
         </Button>
 
-        <div className="grid gap-8 md:grid-cols-2 md:gap-12">
+        <div className='grid gap-8 md:grid-cols-2 md:gap-12'>
           {/* Pass the state and function down to the children */}
           <ProductImageGallery
             product={product}

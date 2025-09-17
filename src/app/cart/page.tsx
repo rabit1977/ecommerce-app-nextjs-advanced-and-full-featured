@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { ShoppingCart } from 'lucide-react';
-import { useApp } from '@/lib/context/app-context';
+import { useAppSelector } from '@/lib/store/hooks';
 import { Button } from '@/components/ui/button';
 import { CartItem } from '@/components/cart/cart-item';
 import { CartSummary } from '@/components/cart/cart-summary';
@@ -10,8 +10,7 @@ import { SavedItem } from '@/components/cart/saved-item';
 import { useRouter } from 'next/navigation';
 
 const CartPage = () => {
-  const { cart, savedForLater } = useApp();
-  // console.log('Cart items:', cart);
+  const { cart, savedForLater } = useAppSelector((state) => state.cart);
   const router = useRouter();
   
   const subtotal = useMemo(() => 

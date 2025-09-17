@@ -2,7 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import { Stars } from '@/components/ui/stars';
-import { useApp } from '@/lib/context/app-context';
+import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
+import { addToCart } from '@/lib/store/slices/cartSlice';
+import { setQuickViewProductId } from '@/lib/store/slices/uiSlice';
+import { toggleWishlist } from '@/lib/store/thunks/cartThunks';
 import { cn } from '@/lib/utils';
 import { priceFmt } from '@/lib/utils/formatters';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -19,14 +22,11 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 const QuickViewModal = () => {
-  const {
-    quickViewProductId,
-    setQuickViewProductId,
-    products,
-    addToCart,
-    wishlist,
-    toggleWishlist,
-  } = useApp();
+  const dispatch = useAppDispatch();
+  const { quickViewProductId } = useAppSelector((state) => state.ui);
+  const { products } = useAppSelector((state) => state.products);
+  const { ids: wishlist } = useAppSelector((state) => state.wishlist);
+
   const product = products.find((p) => p.id === quickViewProductId);
 
   const [quantity, setQuantity] = useState(1);
@@ -69,19 +69,33 @@ const QuickViewModal = () => {
 
   if (!product) return null;
 
-  const isWished = wishlist.has(product.id);
+  const isWished = wishlist?.includes(product.id);
   const isOutOfStock = product.stock === 0;
 
   const handleAddToCart = async () => {
     setAdding(true);
     await new Promise((r) => setTimeout(r, 900));
-    addToCart({
-      id: product.id,
-      quantity,
-      title: product.title,
-      price: product.price,
-      options: selectedOptions,
-    });
+    const cartItemId = `${product.id}-${JSON.stringify(selectedOptions)}`;
+    const colorOption = product.options?.find((o) => o.name === 'Color');
+    const selectedVariant = colorOption?.variants.find(
+      (v) => v.value === selectedOptions?.Color
+    );
+    const itemImage =
+      selectedVariant?.image ||
+      product.images?.[0] ||
+      '/images/placeholder.jpg';
+
+    dispatch(
+      addToCart({
+        id: product.id,
+        quantity,
+        title: product.title,
+        price: product.price,
+        options: selectedOptions,
+        cartItemId,
+        image: itemImage,
+      })
+    );
     setAdding(false);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -108,7 +122,7 @@ const QuickViewModal = () => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60'
-          onClick={() => setQuickViewProductId(null)}
+          onClick={() => dispatch(setQuickViewProductId(null))}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
@@ -119,7 +133,7 @@ const QuickViewModal = () => {
           >
             <button
               className='absolute top-4 right-4 p-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'
-              onClick={() => setQuickViewProductId(null)}
+              onClick={() => dispatch(setQuickViewProductId(null))}
             >
               <X className='h-5 w-5' />
             </button>
@@ -268,7 +282,7 @@ const QuickViewModal = () => {
                   <Button
                     variant={isWished ? 'secondary' : 'outline'}
                     size='icon'
-                    onClick={() => toggleWishlist(product.id)}
+                    onClick={() => dispatch(toggleWishlist(product.id))}
                     aria-label='Wishlist'
                   >
                     <Heart

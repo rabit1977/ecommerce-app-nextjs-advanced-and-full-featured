@@ -1,7 +1,7 @@
 // components/product/product-grid.tsx
 'use client';
 
-import { useApp } from '@/lib/context/app-context';
+import { useProducts } from '@/lib/hooks/useProducts';
 import { Product } from '@/lib/types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useRef } from 'react';
@@ -34,7 +34,7 @@ const ProductGrid = ({
   subtitle = 'Find the perfect tech for you',
   products: customProducts,
 }: ProductGridProps) => {
-  const { products: contextProducts } = useApp();
+  const { products: contextProducts } = useProducts();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

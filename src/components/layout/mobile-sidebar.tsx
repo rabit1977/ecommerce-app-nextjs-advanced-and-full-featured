@@ -1,7 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useApp } from '@/lib/context/app-context';
+import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
+import { setIsMenuOpen } from '@/lib/store/slices/uiSlice';
+import { setUser } from '@/lib/store/slices/userSlice';
 import { useOnClickOutside } from '@/lib/hooks/useOnClickOutside';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -30,15 +32,20 @@ const NavLink = ({ href, children, className, onClick }: NavLinkProps) => (
 );
 
 const MobileSidebar = () => {
-  const { user, logout, isMenuOpen, setIsMenuOpen } = useApp();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.user);
+  const { isMenuOpen } = useAppSelector((state) => state.ui);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const closeMenu = () => setIsMenuOpen(false);
+  const closeMenu = () => dispatch(setIsMenuOpen(false));
 
   // 2. Use the hook to handle clicks outside the menuRef
   useOnClickOutside(menuRef, closeMenu);
 
-
+  const handleLogout = () => {
+    dispatch(setUser(null));
+    closeMenu();
+  };
 
   return (
     <AnimatePresence>
@@ -118,10 +125,7 @@ const MobileSidebar = () => {
                   <Button
                     variant='outline'
                     className='w-full'
-                    onClick={() => {
-                      logout();
-                      closeMenu();
-                    }}
+                    onClick={handleLogout}
                   >
                     <LogOut className='h-4 w-4 mr-2' />
                     Logout

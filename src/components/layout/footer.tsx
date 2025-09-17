@@ -10,10 +10,10 @@ const footerLinks = [
   {
     title: 'Shop',
     links: [
-      { label: 'TVs & Displays', href: '/products/tvs' },
-      { label: 'Laptops & Computers', href: '/products/laptops' },
-      { label: 'Phones & Tablets', href: '/products/phones' },
-      { label: 'Audio', href: '/products/audio' },
+      { label: 'TVs & Displays', href: '/products?category=TVs' },
+      { label: 'Laptops & Computers', href: '/products?category=Laptops' },
+      { label: 'Phones & Tablets', href: '/products?category=Phones' },
+      { label: 'Audio', href: '/products?category=Audio' },
     ],
   },
   {
@@ -35,9 +35,9 @@ const footerLinks = [
 ];
 
 const socialLinks = [
-  { icon: Twitter, href: '#', label: 'Twitter' },
-  { icon: Facebook, href: '#', label: 'Facebook' },
-  { icon: Instagram, href: '#', label: 'Instagram' },
+  { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
+  { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
+  { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
 ];
 
 export function Footer() {

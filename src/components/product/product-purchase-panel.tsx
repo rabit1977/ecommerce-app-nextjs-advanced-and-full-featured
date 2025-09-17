@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Stars } from '@/components/ui/stars';
-import { useApp } from '@/lib/context/app-context';
+import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
+import { addToCart, toggleWishlist } from '@/lib/store/thunks/cartThunks';
 import { Product } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { priceFmt } from '@/lib/utils/formatters';
@@ -28,30 +29,31 @@ export function ProductPurchasePanel({
   selectedOptions,
   onOptionChange,
 }: ProductPurchasePanelProps) {
-  const { addToCart, wishlist, toggleWishlist } = useApp();
+  const dispatch = useAppDispatch();
+  const { itemIds: wishlistItems } = useAppSelector((state: any) => state.wishlist);
   const [isPending, startTransition] = useTransition();
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
 
   const isWished = useMemo(
-    () => wishlist.has(product.id),
-    [wishlist, product.id]
+    () => wishlistItems.includes(product.id),
+    [wishlistItems, product.id]
   );
   const isOutOfStock = useMemo(() => product.stock === 0, [product.stock]);
 
   const handleAddToCart = useCallback(() => {
     startTransition(() => {
-      addToCart({
+      dispatch(addToCart({
         id: product.id,
         quantity,
         title: product.title,
         price: product.price,
         options: selectedOptions,
-      });
+      }));
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
     });
-  }, [product, quantity, selectedOptions, addToCart]);
+  }, [product, quantity, selectedOptions, dispatch]);
 
   return (
     <div>
@@ -194,7 +196,7 @@ export function ProductPurchasePanel({
         <Button
           variant={isWished ? 'secondary' : 'outline'}
           size='lg'
-          onClick={() => toggleWishlist(product.id)}
+          onClick={() => dispatch(toggleWishlist(product.id))}
           aria-label={isWished ? 'Remove from wishlist' : 'Add to wishlist'}
           className='w-full sm:w-auto'
         >
